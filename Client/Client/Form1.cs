@@ -17,6 +17,7 @@ namespace Client
 
         bool terminating = false;
         bool connected = false;
+        bool authenticated = false;
         Socket clientSocket;
 
 
@@ -33,14 +34,14 @@ namespace Client
             string IP = textBox_IP_input.Text;
             int port;
 
-            if (Int32.TryParse(textBox_Port_input.Text, out port))
+            if (Int32.TryParse(textBox_Port_input.Text, out port)) 
             {
                 try
                 {
-                    clientSocket.Connect(IP, port); // IP:port --> socket,  127.0.0.1:8080
+                    clientSocket.Connect(IP, port); 
                     button_connect.Enabled = false;
                     connected = true;
-                    richTextBox1.AppendText("Connected to the server.\n");
+                    richTextBox1.AppendText("Connected to the server.\n"); 
 
                     Thread receiveThread = new Thread(Receive);
                     receiveThread.Start();
@@ -110,6 +111,25 @@ namespace Client
                 buffer = Encoding.Default.GetBytes(message);
                 clientSocket.Send(buffer);
             }
+        }
+
+        private void button_Login_Click(object sender, EventArgs e)// Login protocol 
+        {
+            if(!connected)
+            {
+                button_connect_Click(sender, e);
+            }
+            
+            if(connected)// If not->User is already informed, no need to handle
+            {
+                string username = textBox_Username.Text;
+                string pass = textBox_Password.Text;
+                // TODO: login protocol
+                // TODO: handle receiver thread
+            }
+
+
+            
         }
     }
 }
