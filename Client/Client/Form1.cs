@@ -191,6 +191,7 @@ namespace Client
                     byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
                     //richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
                     UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
+                    /*
                     string randomNumber = receiveOneMessage();
 
                     byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
@@ -198,30 +199,17 @@ namespace Client
 
 
                     // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
-
-
-                }
-                catch (SocketException ex)
-                {
-
-                    richTextBox1.AppendText("Server closed the connection\n");
-                    connected = false;
-                    button_connect.Enabled = true;
-                    button_disconnect.Enabled = false;
-                    button_Login.Enabled = false;
-                    textBox_Password.Enabled = false;
-                    clientSocket.Close();
-
-
+                    */
 
                 }
-                catch
+                catch(Exception ex)
                 {
                     AES256Key = new byte[32];
                     AES256IV = new byte[16];
                     richTextBox1.AppendText("Wrong password. Please try again.\n");
+                    richTextBox1.AppendText(ex.Message);
                 }
-
+           
 
                 // TODO: login protocol
 
