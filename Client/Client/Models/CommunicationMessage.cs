@@ -13,7 +13,7 @@ namespace Client.Models
         ErrorResponse
     }
 
-    public class Message
+    public class CommunicationMessage
     {
         public MessageCodes msgCode;
         public string topic;

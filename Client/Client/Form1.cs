@@ -255,9 +255,8 @@ namespace Client
             msg.message = message;
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
-            richTextBox1.AppendText("jsonObjectDeneme" + jsonObject);     
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
-            //clientSocket.Send(buffer);
+            clientSocket.Send(buffer);
         }
 
         private CommunicationMessage receiveOneMessage()
