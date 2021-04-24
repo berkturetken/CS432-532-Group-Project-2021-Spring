@@ -229,6 +229,7 @@ namespace Client
                             button_Login.Enabled = false;
                             textBox_Password.Enabled = false;
                             button_disconnect.Enabled = false;
+                            button_connect.Enabled = true;
                             serverSocket.Close();
                             richTextBox1.AppendText("Error during random number receiving from Server!\n");
 
@@ -277,6 +278,7 @@ namespace Client
             msg.message = message;
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
+            richTextBox1.AppendText("Lenght " + jsonObject.Length.ToString());
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
             serverSocket.Send(buffer);
         }

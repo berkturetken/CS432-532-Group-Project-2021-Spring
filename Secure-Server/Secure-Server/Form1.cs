@@ -31,6 +31,9 @@ namespace Secure_Server
 
         string serverPublicKey = "";
         string serverPrivateKey = "";
+        string mainRepositoryPath = "";
+
+        Dictionary<string, string> userPubKeys = new Dictionary<string,string>();
 
         public Form1()
         {
@@ -61,7 +64,7 @@ namespace Secure_Server
                 sendMessage(client, MessageCodes.Request, "RN", randomNumber);
                 richTextBox_ConsoleOut.AppendText("128-bit Random Number:\n" + generateHexStringFromByteArray(bytesRandom) + "\n");
                 
-                Byte[] signedRandomNumberBuffer = new Byte[1024];
+                Byte[] signedRandomNumberBuffer = new Byte[1088];
                 client.Receive(signedRandomNumberBuffer);
                 string inMessage = Encoding.Default.GetString(signedRandomNumberBuffer).Trim('\0');
                 richTextBox_ConsoleOut.AppendText(inMessage+"\n");
@@ -73,8 +76,9 @@ namespace Secure_Server
                     signedRandom = msg.message;
                              
                     try
-                    {                      
-                        bool test = verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, hexStringToByteArray(signedRandom));
+                    {
+                        string clientPubKey = userPubKeys[username];
+                        bool test = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
                         richTextBox_ConsoleOut.AppendText(test.ToString());
                     }
                     catch (Exception exc)
@@ -217,6 +221,7 @@ namespace Secure_Server
                         richTextBox_ConsoleOut.AppendText("A client is connected.\n");
                         sendMessage(newClient, MessageCodes.SuccessfulResponse, "User name", "You connected succesfully!\n");
                         usernames.Add(username);
+                        addClientPubKey(username);
                         richTextBox_ConsoleOut.AppendText("Client username: " + username + "\n");
                         Thread receiveThread = new Thread(() => Receive(newClient, username));
                         receiveThread.Start();  //Login protocol initiates
@@ -235,6 +240,23 @@ namespace Secure_Server
                 }
             }
         }
+
+
+        public void addClientPubKey (string userName)
+        {
+            string clientPublicKeyPath = mainRepositoryPath + "\\" + username + "_pub.txt";
+            try
+            {
+                string clientPubKey = File.ReadAllText(clientPublicKeyPath);
+                userPubKeys.Add(username, clientPubKey);
+            }
+            catch
+            {
+                richTextBox_ConsoleOut.AppendText("Error while reading " + username + " public key");
+            }
+
+        }
+
 
         private void button_listen_Click(object sender, EventArgs e)
         {
@@ -732,6 +754,15 @@ namespace Secure_Server
                 {
                     richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message);
                 }
+            }
+        }
+
+        private void mainRepo_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                mainRepositoryPath = fbd.SelectedPath;
             }
         }
     }

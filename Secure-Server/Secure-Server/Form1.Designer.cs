@@ -36,6 +36,8 @@
             this.PublicLabel = new System.Windows.Forms.Label();
             this.ServerPrivateKey = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
+            this.mainRepository = new System.Windows.Forms.Label();
+            this.mainRepo = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label_port
@@ -100,7 +102,7 @@
             // 
             // ServerPrivateKey
             // 
-            this.ServerPrivateKey.Location = new System.Drawing.Point(154, 300);
+            this.ServerPrivateKey.Location = new System.Drawing.Point(154, 306);
             this.ServerPrivateKey.Margin = new System.Windows.Forms.Padding(4);
             this.ServerPrivateKey.Name = "ServerPrivateKey";
             this.ServerPrivateKey.Size = new System.Drawing.Size(133, 28);
@@ -119,11 +121,34 @@
             this.label1.TabIndex = 7;
             this.label1.Text = "Server Private Key:";
             // 
+            // mainRepository
+            // 
+            this.mainRepository.AutoSize = true;
+            this.mainRepository.Location = new System.Drawing.Point(22, 365);
+            this.mainRepository.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.mainRepository.Name = "mainRepository";
+            this.mainRepository.Size = new System.Drawing.Size(109, 17);
+            this.mainRepository.TabIndex = 8;
+            this.mainRepository.Text = "Main repository:";
+            // 
+            // mainRepo
+            // 
+            this.mainRepo.Location = new System.Drawing.Point(154, 359);
+            this.mainRepo.Margin = new System.Windows.Forms.Padding(4);
+            this.mainRepo.Name = "mainRepo";
+            this.mainRepo.Size = new System.Drawing.Size(133, 28);
+            this.mainRepo.TabIndex = 9;
+            this.mainRepo.Text = "Browse";
+            this.mainRepo.UseVisualStyleBackColor = true;
+            this.mainRepo.Click += new System.EventHandler(this.mainRepo_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(616, 361);
+            this.ClientSize = new System.Drawing.Size(653, 425);
+            this.Controls.Add(this.mainRepo);
+            this.Controls.Add(this.mainRepository);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.ServerPrivateKey);
             this.Controls.Add(this.PublicLabel);
@@ -151,6 +176,8 @@
         private System.Windows.Forms.Label PublicLabel;
         private System.Windows.Forms.Button ServerPrivateKey;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label mainRepository;
+        private System.Windows.Forms.Button mainRepo;
     }
 }
 
