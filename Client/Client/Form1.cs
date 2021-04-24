@@ -23,13 +23,24 @@ namespace Client
         Socket clientSocket;
 
         private string ServerKey = ""; // path to server's public key file (taken when browse1 clicked)
-        private string UserKey = ""; // path to user's pub/prv key file (taken when browse2 clicked)
-
+        private string UserPublicKey = "";// path to user's pub/prv key file (taken when browse2 clicked)
+        private string UserEncryptedPrivateKey = "";
+        private string UserPrivateKey = "";
+        private byte[] AES256Key = new byte[32];
+        private byte[] AES256IV = new byte[16];
         public Form1()
         {
             Control.CheckForIllegalCrossThreadCalls = false;
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosing);
             InitializeComponent();
+
+            //Initial button and textbox situations
+
+            button_send.Enabled = false;
+            textBox_message.Enabled = false;
+            button_Login.Enabled = false;
+            textBox_Password.Enabled = false;
+            button_disconnect.Enabled = false;
         }
 
         private void button_connect_Click(object sender, EventArgs e)
@@ -51,10 +62,12 @@ namespace Client
                     if (serverRespond != "already connected\n" ) // if unique
                     {
                         button_connect.Enabled = false;
+                        button_disconnect.Enabled = true;
+                        button_Login.Enabled = true;
+                        textBox_Password.Enabled = true;
                         connected = true;
+                        loadKeys(name);
                         richTextBox1.AppendText("Connected to the server.\n");
-
-
                     }
                     else // if username is already used 
                     {
@@ -88,7 +101,7 @@ namespace Client
 
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
                     clientSocket.Receive(buffer);
-
+            
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf('\0'));
 
@@ -112,6 +125,35 @@ namespace Client
 
         }
 
+        private void loadKeys(string name)
+        {
+            using(System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
+            {
+                ServerKey = fileReader.ReadLine();
+
+                //richTextBox1.AppendText("Server Key:"+ServerKey); DEBUG
+            }
+
+            string userPublicKeyFile = name + "_pub.txt";
+
+            using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
+            {
+                UserPublicKey = fileReader.ReadLine();
+                //richTextBox1.AppendText("User Pub Key" + UserPublicKey); DEBUG
+            }
+
+            string userEncryptedFileName = "enc_" + name + "_pub_prv.txt";
+
+            using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userEncryptedFileName))
+            {
+                UserEncryptedPrivateKey = fileReader.ReadLine();
+       
+                //richTextBox1.AppendText("User Encrypted Key"+UserEncryptedPrivateKey); DEBUG
+            }
+
+
+        }
+
         private void Form1_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             connected = false;
@@ -131,16 +173,41 @@ namespace Client
             }
         }
 
+       
+
         private void button_Login_Click(object sender, EventArgs e)// Login protocol 
         {
-            if(!connected)
-            {
-                button_connect_Click(sender, e);
-            }
-            
-            if(connected)// If not->User is already informed, no need to handle
+
+            if (connected)
             {
                 string pass = textBox_Password.Text;
+
+                byte[] hashedPassword = hashWithSHA384(pass);
+                Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
+                Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
+                try
+                {
+                    byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
+                    richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
+                    UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
+                    string randomNumber = receiveOneMessage();
+ 
+                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                    clientSocket.Send(signedNonce);
+                    
+
+                   // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
+
+
+                }
+                catch
+                {
+                    AES256Key = new byte[32];
+                    AES256IV = new byte[16];
+                    richTextBox1.AppendText("Wrong password. Please try again.\n");
+                }
+
+
                 // TODO: login protocol
 
                 /*The encrypted 4096-bit RSA private key, is decrypted using the hash of the entered password 
@@ -193,24 +260,6 @@ namespace Client
             richTextBox1.AppendText("You disconnected\n");
             clientSocket.Close();
             connected = false;
-        }
-
-        private void button_browse_serverKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            dlg.Title = "File Sharing Client";
-            dlg.ShowDialog();
-            textBox_ServerKey.Text = dlg.FileName;
-            ServerKey = dlg.FileName;
-        }
-
-        private void button_browse_userKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            dlg.Title = "File Sharing Client";
-            dlg.ShowDialog();
-            textBox_UserKey.Text = dlg.FileName;
-            UserKey = dlg.FileName;
         }
 
 
@@ -312,78 +361,6 @@ namespace Client
 
         /*    SYMMETRIC CIPHERS     */
 
-        // encryption with AES-128
-        static byte[] encryptWithAES128(string input, byte[] key, byte[] IV)
-        {
-            // convert input string to byte array
-            byte[] byteInput = Encoding.Default.GetBytes(input);
-
-            // create AES object from System.Security.Cryptography
-            RijndaelManaged aesObject = new RijndaelManaged();
-            // since we want to use AES-128
-            aesObject.KeySize = 128;
-            // block size of AES is 128 bits
-            aesObject.BlockSize = 128;
-            // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
-            // feedback size should be equal to block size
-            aesObject.FeedbackSize = 128;
-            // set the key
-            aesObject.Key = key;
-            // set the IV
-            aesObject.IV = IV;
-            // create an encryptor with the settings provided
-            ICryptoTransform encryptor = aesObject.CreateEncryptor();
-            byte[] result = null;
-
-            try
-            {
-                result = encryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
-            }
-            catch (Exception e) // if encryption fails
-            {
-                Console.WriteLine(e.Message); // display the cause
-            }
-
-            return result;
-        }
-
-        // encryption with AES-192
-        static byte[] encryptWithAES192(string input, byte[] key, byte[] IV)
-        {
-            // convert input string to byte array
-            byte[] byteInput = Encoding.Default.GetBytes(input);
-
-            // create AES object from System.Security.Cryptography
-            RijndaelManaged aesObject = new RijndaelManaged();
-            // since we want to use AES-192
-            aesObject.KeySize = 192;
-            // block size of AES is 128 bits
-            aesObject.BlockSize = 128;
-            // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
-            // feedback size should be equal to block size
-            aesObject.FeedbackSize = 128;
-            // set the key
-            aesObject.Key = key;
-            // set the IV
-            aesObject.IV = IV;
-            // create an encryptor with the settings provided
-            ICryptoTransform encryptor = aesObject.CreateEncryptor();
-            byte[] result = null;
-
-            try
-            {
-                result = encryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
-            }
-            catch (Exception e) // if encryption fails
-            {
-                Console.WriteLine(e.Message); // display the cause
-            }
-
-            return result;
-        }
-
         // encryption with AES-256
         static byte[] encryptWithAES256(string input, byte[] key, byte[] IV)
         {
@@ -413,78 +390,6 @@ namespace Client
             try
             {
                 result = encryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
-            }
-            catch (Exception e) // if encryption fails
-            {
-                Console.WriteLine(e.Message); // display the cause
-            }
-
-            return result;
-        }
-
-        // encryption with AES-128
-        static byte[] decryptWithAES128(string input, byte[] key, byte[] IV)
-        {
-            // convert input string to byte array
-            byte[] byteInput = Encoding.Default.GetBytes(input);
-
-            // create AES object from System.Security.Cryptography
-            RijndaelManaged aesObject = new RijndaelManaged();
-            // since we want to use AES-128
-            aesObject.KeySize = 128;
-            // block size of AES is 128 bits
-            aesObject.BlockSize = 128;
-            // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
-            // feedback size should be equal to block size
-            // aesObject.FeedbackSize = 128;
-            // set the key
-            aesObject.Key = key;
-            // set the IV
-            aesObject.IV = IV;
-            // create an encryptor with the settings provided
-            ICryptoTransform decryptor = aesObject.CreateDecryptor();
-            byte[] result = null;
-
-            try
-            {
-                result = decryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
-            }
-            catch (Exception e) // if encryption fails
-            {
-                Console.WriteLine(e.Message); // display the cause
-            }
-
-            return result;
-        }
-
-        // decryption with AES-192
-        static byte[] decryptWithAES192(string input, byte[] key, byte[] IV)
-        {
-            // convert input string to byte array
-            byte[] byteInput = Encoding.Default.GetBytes(input);
-
-            // create AES object from System.Security.Cryptography
-            RijndaelManaged aesObject = new RijndaelManaged();
-            // since we want to use AES-192
-            aesObject.KeySize = 192;
-            // block size of AES is 128 bits
-            aesObject.BlockSize = 128;
-            // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
-            // feedback size should be equal to block size
-            // aesObject.FeedbackSize = 128;
-            // set the key
-            aesObject.Key = key;
-            // set the IV
-            aesObject.IV = IV;
-            // create an encryptor with the settings provided
-            ICryptoTransform decryptor = aesObject.CreateDecryptor();
-            byte[] result = null;
-
-            try
-            {
-                result = decryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
             }
             catch (Exception e) // if encryption fails
             {
@@ -525,6 +430,43 @@ namespace Client
             }
             catch (Exception e) // if encryption fails
             {
+                
+                Console.WriteLine(e.Message); // display the cause
+            }
+
+            return result;
+        }
+
+        static byte[] decryptWithAES256HexVersion(string input, byte[] key, byte[] IV)
+        {
+            // convert input string to byte array
+            byte[] byteInput = hexStringToByteArray(input);
+
+            // create AES object from System.Security.Cryptography
+            RijndaelManaged aesObject = new RijndaelManaged();
+            // since we want to use AES-256
+            aesObject.KeySize = 256;
+            // block size of AES is 128 bits
+            aesObject.BlockSize = 128;
+            // mode -> CipherMode.*
+            aesObject.Mode = CipherMode.CFB;
+            // feedback size should be equal to block size
+            aesObject.FeedbackSize = 128;
+            // set the key
+            aesObject.Key = key;
+            // set the IV
+            aesObject.IV = IV;
+            // create an encryptor with the settings provided
+            ICryptoTransform decryptor = aesObject.CreateDecryptor();
+            byte[] result = null;
+
+            try
+            {
+                result = decryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
+            }
+            catch (Exception e) // if encryption fails
+            {
+
                 Console.WriteLine(e.Message); // display the cause
             }
 
@@ -592,7 +534,7 @@ namespace Client
 
             try
             {
-                result = rsaObject.SignData(byteInput, "SHA256");
+                result = rsaObject.SignData(byteInput, "SHA512");
             }
             catch (Exception e)
             {
@@ -625,8 +567,14 @@ namespace Client
             return result;
         }
 
-        
+        private void textBox_message_TextChanged(object sender, EventArgs e)
+        {
 
-        
+        }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

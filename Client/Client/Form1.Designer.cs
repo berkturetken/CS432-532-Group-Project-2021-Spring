@@ -42,20 +42,14 @@
             this.textBox_IP_input = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.textBox_Password = new System.Windows.Forms.TextBox();
-            this.button_Login = new System.Windows.Forms.Button();
             this.button_disconnect = new System.Windows.Forms.Button();
-            this.textBox_ServerKey = new System.Windows.Forms.TextBox();
-            this.textBox_UserKey = new System.Windows.Forms.TextBox();
-            this.label6 = new System.Windows.Forms.Label();
-            this.label7 = new System.Windows.Forms.Label();
-            this.button_browse_serverKey = new System.Windows.Forms.Button();
-            this.button_browse_userKey = new System.Windows.Forms.Button();
+            this.button_Login = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_send
             // 
-            this.button_send.Location = new System.Drawing.Point(138, 351);
+            this.button_send.Location = new System.Drawing.Point(138, 328);
             this.button_send.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button_send.Name = "button_send";
             this.button_send.Size = new System.Drawing.Size(120, 31);
@@ -66,29 +60,33 @@
             // 
             // richTextBox1
             // 
+            this.richTextBox1.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.richTextBox1.Location = new System.Drawing.Point(275, 44);
             this.richTextBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.richTextBox1.Name = "richTextBox1";
+            this.richTextBox1.ReadOnly = true;
             this.richTextBox1.Size = new System.Drawing.Size(204, 338);
             this.richTextBox1.TabIndex = 15;
             this.richTextBox1.Text = "";
             // 
             // textBox_message
             // 
-            this.textBox_message.Location = new System.Drawing.Point(137, 325);
+            this.textBox_message.Location = new System.Drawing.Point(137, 302);
             this.textBox_message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_message.Name = "textBox_message";
             this.textBox_message.Size = new System.Drawing.Size(121, 22);
             this.textBox_message.TabIndex = 14;
+            this.textBox_message.TextChanged += new System.EventHandler(this.textBox_message_TextChanged);
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(36, 330);
+            this.label3.Location = new System.Drawing.Point(36, 307);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(69, 17);
             this.label3.TabIndex = 13;
             this.label3.Text = "Message:";
+            this.label3.Click += new System.EventHandler(this.label3_Click);
             // 
             // textBox_Username
             // 
@@ -191,7 +189,7 @@
             this.tableLayoutPanel1.Controls.Add(this.button_connect, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.button_disconnect, 1, 3);
             this.tableLayoutPanel1.Controls.Add(this.button_Login, 0, 5);
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(39, 112);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(34, 61);
             this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(4);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 6;
@@ -215,6 +213,16 @@
             this.textBox_Password.TabIndex = 21;
             this.textBox_Password.UseSystemPasswordChar = true;
             // 
+            // button_disconnect
+            // 
+            this.button_disconnect.Location = new System.Drawing.Point(115, 105);
+            this.button_disconnect.Name = "button_disconnect";
+            this.button_disconnect.Size = new System.Drawing.Size(105, 28);
+            this.button_disconnect.TabIndex = 23;
+            this.button_disconnect.Text = "Disconnect";
+            this.button_disconnect.UseVisualStyleBackColor = true;
+            this.button_disconnect.Click += new System.EventHandler(this.button_disconnect_Click);
+            // 
             // button_Login
             // 
             this.button_Login.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -232,79 +240,11 @@
             this.button_Login.UseVisualStyleBackColor = true;
             this.button_Login.Click += new System.EventHandler(this.button_Login_Click);
             // 
-            // button_disconnect
-            // 
-            this.button_disconnect.Location = new System.Drawing.Point(115, 105);
-            this.button_disconnect.Name = "button_disconnect";
-            this.button_disconnect.Size = new System.Drawing.Size(105, 28);
-            this.button_disconnect.TabIndex = 23;
-            this.button_disconnect.Text = "Disconnect";
-            this.button_disconnect.UseVisualStyleBackColor = true;
-            this.button_disconnect.Click += new System.EventHandler(this.button_disconnect_Click);
-            // 
-            // textBox_ServerKey
-            // 
-            this.textBox_ServerKey.Location = new System.Drawing.Point(24, 29);
-            this.textBox_ServerKey.Name = "textBox_ServerKey";
-            this.textBox_ServerKey.Size = new System.Drawing.Size(100, 22);
-            this.textBox_ServerKey.TabIndex = 19;
-            // 
-            // textBox_UserKey
-            // 
-            this.textBox_UserKey.Location = new System.Drawing.Point(24, 72);
-            this.textBox_UserKey.Name = "textBox_UserKey";
-            this.textBox_UserKey.Size = new System.Drawing.Size(100, 22);
-            this.textBox_UserKey.TabIndex = 20;
-            // 
-            // label6
-            // 
-            this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(12, 9);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(146, 17);
-            this.label6.TabIndex = 21;
-            this.label6.Text = "Server Public Key File";
-            // 
-            // label7
-            // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(12, 52);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(92, 17);
-            this.label7.TabIndex = 22;
-            this.label7.Text = "User Key File";
-            // 
-            // button_browse_serverKey
-            // 
-            this.button_browse_serverKey.Location = new System.Drawing.Point(154, 29);
-            this.button_browse_serverKey.Name = "button_browse_serverKey";
-            this.button_browse_serverKey.Size = new System.Drawing.Size(75, 23);
-            this.button_browse_serverKey.TabIndex = 23;
-            this.button_browse_serverKey.Text = "Browse1";
-            this.button_browse_serverKey.UseVisualStyleBackColor = true;
-            this.button_browse_serverKey.Click += new System.EventHandler(this.button_browse_serverKey_Click);
-            // 
-            // button_browse_userKey
-            // 
-            this.button_browse_userKey.Location = new System.Drawing.Point(154, 72);
-            this.button_browse_userKey.Name = "button_browse_userKey";
-            this.button_browse_userKey.Size = new System.Drawing.Size(75, 23);
-            this.button_browse_userKey.TabIndex = 24;
-            this.button_browse_userKey.Text = "Browse2";
-            this.button_browse_userKey.UseVisualStyleBackColor = true;
-            this.button_browse_userKey.Click += new System.EventHandler(this.button_browse_userKey_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(521, 404);
-            this.Controls.Add(this.button_browse_userKey);
-            this.Controls.Add(this.button_browse_serverKey);
-            this.Controls.Add(this.label7);
-            this.Controls.Add(this.label6);
-            this.Controls.Add(this.textBox_UserKey);
-            this.Controls.Add(this.textBox_ServerKey);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.button_send);
             this.Controls.Add(this.richTextBox1);
@@ -338,12 +278,6 @@
         private System.Windows.Forms.TextBox textBox_Password;
         private System.Windows.Forms.Button button_Login;
         private System.Windows.Forms.Button button_disconnect;
-        private System.Windows.Forms.TextBox textBox_ServerKey;
-        private System.Windows.Forms.TextBox textBox_UserKey;
-        private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Button button_browse_serverKey;
-        private System.Windows.Forms.Button button_browse_userKey;
     }
 }
 
