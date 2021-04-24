@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
+using System.IO;
 
 using Client.Models;
 
@@ -74,16 +75,6 @@ namespace Client
                         textBox_Password.Enabled = true;
                         connected = true;
                         richTextBox1.AppendText(serverResponse.message);
-
-                        //Load keys client public key, encrypted client private key, server public key
-                        try
-                        {
-                            loadKeys(name);
-                        }
-                        catch(Exception ex)
-                        {
-                            richTextBox1.AppendText("Error while loading keys: " + ex.Message +"\n");
-                        }
                     }
                     else // if username is already used 
                     {
@@ -146,39 +137,7 @@ namespace Client
 
         }
 
-        private void loadKeys(string name)
-        {
-            //Load server public key
-            using (System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
-            {
-                ServerKey = fileReader.ReadLine();
-                byte[] byteServerKey = Encoding.Default.GetBytes(ServerKey);
-                string hexaServerKey = generateHexStringFromByteArray(byteServerKey);
-                richTextBox1.AppendText("Server Public Key: "+hexaServerKey + "\n");
-            }
-
-            //Load user public key
-            string userPublicKeyFile = name + "_pub.txt";
-
-            using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
-            {
-                UserPublicKey = fileReader.ReadLine();
-                byte[] byteUserPubKey = Encoding.Default.GetBytes(UserPublicKey);
-                string hexaUserPubKey = generateHexStringFromByteArray(byteUserPubKey);
-                richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
-            }
-
-            //Load user encrypted private key
-            string userEncryptedFileName = "enc_" + name + "_pub_prv.txt";
-
-            using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userEncryptedFileName))
-            {
-                UserEncryptedPrivateKey = fileReader.ReadLine();
-                richTextBox1.AppendText("User Encrypted Private Key: " + UserEncryptedPrivateKey + "\n");
-            }
-
-
-        }
+      
 
         private void Form1_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -204,47 +163,64 @@ namespace Client
 
         private void button_Login_Click(object sender, EventArgs e)// Login protocol 
         {
-
-            if (connected)
+            if (UserPublicKey == "" || UserEncryptedPrivateKey == "" || ServerKey == "")
             {
-                string pass = textBox_Password.Text;
+                richTextBox1.AppendText("You need to choose all the keys first!\n");
+            }
+            else
+            {
 
-                //Password hashing and creating AES-256 Key and IV
-                byte[] hashedPassword = hashWithSHA384(pass);
-                Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
-                Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
-                string hexaDecimalAES256Key = generateHexStringFromByteArray(AES256Key);
-                string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
-                richTextBox1.AppendText("AES 256 Key: " +hexaDecimalAES256Key+ "\n");
-                richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
-
-
-                try
+                if (connected)
                 {
-                    //Decrypt the Private Key using AES-256 
-                    byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
-                    UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
-                    string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
-                    richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
+                    string pass = textBox_Password.Text;
 
+                    //Password hashing and creating AES-256 Key and IV
+                    byte[] hashedPassword = hashWithSHA384(pass);
+                    Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
+                    Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
+                    string hexaDecimalAES256Key = generateHexStringFromByteArray(AES256Key);
+                    string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
+                    richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
+                    richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
 
 
                     try
                     {
-                        //Get Random Number from Server
-                        CommunicationMessage randomNumberMessage = receiveOneMessage();
-                        string randomNumber = randomNumberMessage.message;
-                        byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
-                        richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes) + "\n");
+                        //Decrypt the Private Key using AES-256 
+                        byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
+                        UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
+                        string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
+                        richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
+
+
 
                         try
                         {
-                            //Sign the Random Number and Send it to the server
-                            byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                            string strNonce = Encoding.Default.GetString(signedNonce);
-                            string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
-                            send_message(strNonce, "signedRN", MessageCodes.Request);
-                            richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                            //Get Random Number from Server
+                            CommunicationMessage randomNumberMessage = receiveOneMessage();
+                            string randomNumber = randomNumberMessage.message;
+                            byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
+                            richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes) + "\n");
+
+                            try
+                            {
+                                //Sign the Random Number and Send it to the server
+                                byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                                string strNonce = Encoding.Default.GetString(signedNonce);
+                                string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
+                                send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
+                                richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                            }
+                            catch
+                            {
+                                button_send.Enabled = false;
+                                textBox_message.Enabled = false;
+                                button_Login.Enabled = false;
+                                textBox_Password.Enabled = false;
+                                button_disconnect.Enabled = false;
+                                serverSocket.Close();
+                                richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
+                            }
                         }
                         catch
                         {
@@ -254,53 +230,42 @@ namespace Client
                             textBox_Password.Enabled = false;
                             button_disconnect.Enabled = false;
                             serverSocket.Close();
-                            richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
+                            richTextBox1.AppendText("Error during random number receiving from Server!\n");
+
                         }
+
                     }
                     catch
                     {
-                        button_send.Enabled = false;
-                        textBox_message.Enabled = false;
-                        button_Login.Enabled = false;
-                        textBox_Password.Enabled = false;
-                        button_disconnect.Enabled = false;
-                        serverSocket.Close();
-                        richTextBox1.AppendText("Error during random number receiving from Server!\n");
-                        
+                        AES256Key = new byte[32];
+                        AES256IV = new byte[16];
+                        richTextBox1.AppendText("Wrong password. Please try again.\n");
                     }
 
+
+                    // TODO: login protocol
+
+                    /*The encrypted 4096-bit RSA private key, is decrypted using the hash of the entered password 
+                     * 
+                     * (The RSA-4096 private key of each user is given in encrypted form. 
+                     * The encryption is done using AES-256 in CFB mode. For the key and IV of this encryption, 
+                     * SHA-384 hash of the password is used, first 32 bytes of the hash output, i.e. the byte array indices [0…31], 
+                     * being the key and last 16 bytes of the hash output, i.e. the byte array indices [32…47], being the IV.)
+                     * 
+                     * if the password is entered correctly, we obtain the decrypted RSA private key. 
+                     * !! should not store this decrypted private key in any file; just keep it in memory during a session.
+                     * If the password is entered wrong, the decryption operation would fail (probably by throwing an exception) 
+                     * and user understands that he/she entered the password wrong. 
+                     * (inform the user about the wrong password and ask for it again)*/
+
+                    // TODO: verify the signature comes from server
+                    /*If verified, the client will decrypt the HMAC key using his/her own private RSA key and store it in the memory*/
+
+                    /* If authentication protocol fails, the connection must be closed,
+                     * connection/authentication can be initiated again through the GUI.*/
                 }
-                catch
-                {
-                    AES256Key = new byte[32];
-                    AES256IV = new byte[16];
-                    richTextBox1.AppendText("Wrong password. Please try again.\n");
-                }
-           
 
-                // TODO: login protocol
-
-                /*The encrypted 4096-bit RSA private key, is decrypted using the hash of the entered password 
-                 * 
-                 * (The RSA-4096 private key of each user is given in encrypted form. 
-                 * The encryption is done using AES-256 in CFB mode. For the key and IV of this encryption, 
-                 * SHA-384 hash of the password is used, first 32 bytes of the hash output, i.e. the byte array indices [0…31], 
-                 * being the key and last 16 bytes of the hash output, i.e. the byte array indices [32…47], being the IV.)
-                 * 
-                 * if the password is entered correctly, we obtain the decrypted RSA private key. 
-                 * !! should not store this decrypted private key in any file; just keep it in memory during a session.
-                 * If the password is entered wrong, the decryption operation would fail (probably by throwing an exception) 
-                 * and user understands that he/she entered the password wrong. 
-                 * (inform the user about the wrong password and ask for it again)*/
-
-                // TODO: verify the signature comes from server
-                /*If verified, the client will decrypt the HMAC key using his/her own private RSA key and store it in the memory*/
-
-                /* If authentication protocol fails, the connection must be closed,
-                 * connection/authentication can be initiated again through the GUI.*/
             }
-
-
 
         }
 
@@ -646,19 +611,71 @@ namespace Client
             return result;
         }
 
-        private void textBox_message_TextChanged(object sender, EventArgs e)
-        {
 
+        
+
+        private void serverPubKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if(result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+
+                try
+                {
+                    ServerKey = File.ReadAllText(fileName);
+                    byte[] byteServerKey = Encoding.Default.GetBytes(ServerKey);
+                    string hexaServerKey = generateHexStringFromByteArray(byteServerKey);
+                    richTextBox1.AppendText("Server Public Key: " + hexaServerKey + "\n");
+                }
+                catch(IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting server public key " + ex.Message);
+                }
+            }  
         }
 
-        private void label3_Click(object sender, EventArgs e)
+        private void clientPublicKey_Click(object sender, EventArgs e)
         {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
 
+                try
+                {
+                    UserPublicKey = File.ReadAllText(fileName);
+                    byte[] byteUserPubKey = Encoding.Default.GetBytes(UserPublicKey);
+                    string hexaUserPubKey = generateHexStringFromByteArray(byteUserPubKey);
+                    richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting client public key " + ex.Message);
+                }
+            }
         }
 
-        private void label1_Click(object sender, EventArgs e)
+        private void clientPrivateKey_Click(object sender, EventArgs e)
         {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
 
+                try
+                {
+                    UserEncryptedPrivateKey = File.ReadAllText(fileName);
+                    richTextBox1.AppendText("User Encrypted Private Key: " + UserEncryptedPrivateKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting client encrypted private key " + ex.Message);
+                }
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ using System.Windows.Forms;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
 using Secure_Server.Models;
+using System.IO;
 
 namespace Secure_Server
 {
@@ -27,6 +28,9 @@ namespace Secure_Server
         List<string> usernames = new List<string>();
         string username = "";
         string signedRandom = "";
+
+        string serverPublicKey = "";
+        string serverPrivateKey = "";
 
         public Form1()
         {
@@ -67,15 +71,9 @@ namespace Secure_Server
                 {
                     richTextBox_ConsoleOut.AppendText("Inside if...\n");
                     signedRandom = msg.message;
-                    
-                    string userPublicKeyFile = username + "_pub.txt";
-                    string client4096BitPublicKey;
+                             
                     try
-                    {
-                        using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
-                        {
-                            client4096BitPublicKey = fileReader.ReadLine();
-                        }
+                    {                      
                         bool test = verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, hexStringToByteArray(signedRandom));
                         richTextBox_ConsoleOut.AppendText(test.ToString());
                     }
@@ -693,5 +691,48 @@ namespace Secure_Server
             return result;
         }
 
+        private void ServerPublicKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+
+                try
+                {
+                    serverPublicKey = File.ReadAllText(fileName);
+                    byte[] byteServerPubKey = Encoding.Default.GetBytes(serverPublicKey);
+                    string hexaServerPubKey = generateHexStringFromByteArray(byteServerPubKey);
+                    richTextBox_ConsoleOut.AppendText("Server Public Key: " + hexaServerPubKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message);
+                }
+            }
+        }
+
+        private void ServerPrivateKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+
+                try
+                {
+                    serverPrivateKey = File.ReadAllText(fileName);
+                    byte[] byteServerPrvKey = Encoding.Default.GetBytes(serverPrivateKey);
+                    string hexaServerPrvKey = generateHexStringFromByteArray(byteServerPrvKey);
+                    richTextBox_ConsoleOut.AppendText("Server Private Key: " + hexaServerPrvKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message);
+                }
+            }
+        }
     }
 }

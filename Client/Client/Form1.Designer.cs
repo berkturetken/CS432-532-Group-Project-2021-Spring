@@ -47,8 +47,8 @@
             this.serverPubKey = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
+            this.clientPublicKey = new System.Windows.Forms.Button();
+            this.clientPrivateKey = new System.Windows.Forms.Button();
             this.label8 = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
@@ -82,7 +82,6 @@
             this.textBox_message.Name = "textBox_message";
             this.textBox_message.Size = new System.Drawing.Size(121, 22);
             this.textBox_message.TabIndex = 14;
-            this.textBox_message.TextChanged += new System.EventHandler(this.textBox_message_TextChanged);
             // 
             // label3
             // 
@@ -92,7 +91,6 @@
             this.label3.Size = new System.Drawing.Size(69, 17);
             this.label3.TabIndex = 13;
             this.label3.Text = "Message:";
-            this.label3.Click += new System.EventHandler(this.label3_Click);
             // 
             // textBox_Username
             // 
@@ -144,7 +142,6 @@
             this.label1.Size = new System.Drawing.Size(129, 17);
             this.label1.TabIndex = 9;
             this.label1.Text = "IP:";
-            this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // button_connect
             // 
@@ -256,6 +253,7 @@
             this.serverPubKey.TabIndex = 19;
             this.serverPubKey.Text = "Browse";
             this.serverPubKey.UseVisualStyleBackColor = true;
+            this.serverPubKey.Click += new System.EventHandler(this.serverPubKey_Click);
             // 
             // label6
             // 
@@ -275,25 +273,27 @@
             this.label7.TabIndex = 21;
             this.label7.Text = "Client Public Key:";
             // 
-            // button1
+            // clientPublicKey
             // 
-            this.button1.Location = new System.Drawing.Point(483, 280);
-            this.button1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(120, 31);
-            this.button1.TabIndex = 22;
-            this.button1.Text = "Browse";
-            this.button1.UseVisualStyleBackColor = true;
+            this.clientPublicKey.Location = new System.Drawing.Point(483, 280);
+            this.clientPublicKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.clientPublicKey.Name = "clientPublicKey";
+            this.clientPublicKey.Size = new System.Drawing.Size(120, 31);
+            this.clientPublicKey.TabIndex = 22;
+            this.clientPublicKey.Text = "Browse";
+            this.clientPublicKey.UseVisualStyleBackColor = true;
+            this.clientPublicKey.Click += new System.EventHandler(this.clientPublicKey_Click);
             // 
-            // button2
+            // clientPrivateKey
             // 
-            this.button2.Location = new System.Drawing.Point(483, 324);
-            this.button2.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(120, 31);
-            this.button2.TabIndex = 23;
-            this.button2.Text = "Browse";
-            this.button2.UseVisualStyleBackColor = true;
+            this.clientPrivateKey.Location = new System.Drawing.Point(483, 324);
+            this.clientPrivateKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.clientPrivateKey.Name = "clientPrivateKey";
+            this.clientPrivateKey.Size = new System.Drawing.Size(120, 31);
+            this.clientPrivateKey.TabIndex = 23;
+            this.clientPrivateKey.Text = "Browse";
+            this.clientPrivateKey.UseVisualStyleBackColor = true;
+            this.clientPrivateKey.Click += new System.EventHandler(this.clientPrivateKey_Click);
             // 
             // label8
             // 
@@ -310,8 +310,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(709, 472);
             this.Controls.Add(this.label8);
-            this.Controls.Add(this.button2);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.clientPrivateKey);
+            this.Controls.Add(this.clientPublicKey);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.serverPubKey);
@@ -351,8 +351,8 @@
         private System.Windows.Forms.Button serverPubKey;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label7;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button clientPublicKey;
+        private System.Windows.Forms.Button clientPrivateKey;
         private System.Windows.Forms.Label label8;
     }
 }
