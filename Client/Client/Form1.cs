@@ -45,7 +45,6 @@ namespace Client
             button_Login.Enabled = false;
             textBox_Password.Enabled = false;
             button_disconnect.Enabled = false;
-            send_message("Buket", "User Name", MessageCodes.Request);
         }
 
         private void button_connect_Click(object sender, EventArgs e)
@@ -72,7 +71,7 @@ namespace Client
                         textBox_Password.Enabled = true;
                         connected = true;
                         loadKeys(name);
-                        richTextBox1.AppendText("Connected to the server.\n");
+                        richTextBox1.AppendText(serverResponse.message);
                     }
                     else // if username is already used 
                     {
@@ -135,8 +134,9 @@ namespace Client
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
             {
                 ServerKey = fileReader.ReadLine();
-
-                //richTextBox1.AppendText("Server Key:"+ServerKey); DEBUG
+                byte[] byteServerKey = Encoding.Default.GetBytes(ServerKey);
+                string hexaServerKey = generateHexStringFromByteArray(byteServerKey);
+                richTextBox1.AppendText("Server Public Key: "+hexaServerKey + "\n");
             }
 
             string userPublicKeyFile = name + "_pub.txt";
@@ -144,7 +144,9 @@ namespace Client
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
             {
                 UserPublicKey = fileReader.ReadLine();
-                //richTextBox1.AppendText("User Pub Key" + UserPublicKey); DEBUG
+                byte[] byteUserPubKey = Encoding.Default.GetBytes(UserPublicKey);
+                string hexaUserPubKey = generateHexStringFromByteArray(byteUserPubKey);
+                richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
             }
 
             string userEncryptedFileName = "enc_" + name + "_pub_prv.txt";
@@ -152,8 +154,7 @@ namespace Client
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userEncryptedFileName))
             {
                 UserEncryptedPrivateKey = fileReader.ReadLine();
-
-                //richTextBox1.AppendText("User Encrypted Key"+UserEncryptedPrivateKey); DEBUG
+                richTextBox1.AppendText("User Encrypted Private Key: " + UserEncryptedPrivateKey + "\n");
             }
 
 
@@ -196,6 +197,8 @@ namespace Client
                     byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
                     //richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
                     UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
+                    string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
+                    richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
                     /*
                     string randomNumber = receiveOneMessage();
 
