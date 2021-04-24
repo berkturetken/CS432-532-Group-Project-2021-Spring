@@ -24,7 +24,7 @@ namespace Client
         bool terminating = false;
         bool connected = false;
         bool authenticated = false;
-        Socket clientSocket;
+        Socket serverSocket;
 
         private string ServerKey = ""; // path to server's public key file (taken when browse1 clicked)
         private string UserPublicKey = "";// path to user's pub/prv key file (taken when browse2 clicked)
@@ -49,7 +49,7 @@ namespace Client
 
         private void button_connect_Click(object sender, EventArgs e)
         {
-            clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             string IP = textBox_IP_input.Text;
             int port;
             name = textBox_Username.Text;
@@ -60,7 +60,7 @@ namespace Client
             {
                 try
                 {
-                    clientSocket.Connect(IP, port);
+                    serverSocket.Connect(IP, port);
                     send_message(name,"User name",MessageCodes.Request); // send username to server and wait for uniqeness check
                     CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
                     if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
@@ -83,7 +83,7 @@ namespace Client
                     else // if username is already used 
                     {
                         richTextBox1.AppendText(serverResponse.message);
-                        clientSocket.Close();
+                        serverSocket.Close();
                         connected = false;
                     }
 
@@ -111,7 +111,7 @@ namespace Client
                 {
 
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
-                    clientSocket.Receive(buffer);
+                    serverSocket.Receive(buffer);
 
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf('\0'));
@@ -127,7 +127,7 @@ namespace Client
                         richTextBox1.AppendText("The server has disconnected.\n");
                     }
 
-                    clientSocket.Close();
+                    serverSocket.Close();
                     connected = false;
 
                 }
@@ -171,7 +171,7 @@ namespace Client
         {
             connected = false;
             terminating = true;
-            clientSocket.Close();
+            serverSocket.Close();
             Environment.Exit(0);
         }
 
@@ -183,7 +183,7 @@ namespace Client
             {
                 Byte[] buffer = new Byte[64];
                 buffer = Encoding.Default.GetBytes(message);
-                clientSocket.Send(buffer);
+                serverSocket.Send(buffer);
             }
         }
 
@@ -222,8 +222,10 @@ namespace Client
 
                     //Sign the Random Number
                     byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                    richTextBox1.AppendText("Nonce Length"+signedNonce.Length.ToString());
-                    //clientSocket.Send(signedNonce);//Challenge-response phase 1 initiated here
+                    string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
+                    send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
+                    richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                    //Challenge-response phase 1 initiated here
 
 
                    
@@ -277,13 +279,13 @@ namespace Client
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
-            clientSocket.Send(buffer);
+            serverSocket.Send(buffer);
         }
 
         private CommunicationMessage receiveOneMessage()
         {
             Byte[] buffer = new Byte[128];
-            clientSocket.Receive(buffer);
+            serverSocket.Receive(buffer);
             string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
             return msg;
@@ -296,7 +298,7 @@ namespace Client
             button_disconnect.Enabled = false;
             button_Login.Enabled = false;
             textBox_Password.Enabled = false;
-            clientSocket.Close();
+            serverSocket.Close();
 
         }
 
