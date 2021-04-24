@@ -241,8 +241,9 @@ namespace Client
                         {
                             //Sign the Random Number and Send it to the server
                             byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                            string strNonce = Encoding.Default.GetString(signedNonce);
                             string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
-                            send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
+                            send_message(strNonce, "signedRN", MessageCodes.Request);
                             richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
                         }
                         catch
