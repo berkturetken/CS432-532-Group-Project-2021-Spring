@@ -49,7 +49,7 @@
             // 
             // button_send
             // 
-            this.button_send.Location = new System.Drawing.Point(138, 328);
+            this.button_send.Location = new System.Drawing.Point(448, 265);
             this.button_send.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button_send.Name = "button_send";
             this.button_send.Size = new System.Drawing.Size(120, 31);
@@ -61,17 +61,17 @@
             // richTextBox1
             // 
             this.richTextBox1.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.richTextBox1.Location = new System.Drawing.Point(275, 44);
+            this.richTextBox1.Location = new System.Drawing.Point(12, 11);
             this.richTextBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.richTextBox1.Name = "richTextBox1";
             this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(204, 338);
+            this.richTextBox1.Size = new System.Drawing.Size(682, 214);
             this.richTextBox1.TabIndex = 15;
             this.richTextBox1.Text = "";
             // 
             // textBox_message
             // 
-            this.textBox_message.Location = new System.Drawing.Point(137, 302);
+            this.textBox_message.Location = new System.Drawing.Point(447, 239);
             this.textBox_message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_message.Name = "textBox_message";
             this.textBox_message.Size = new System.Drawing.Size(121, 22);
@@ -81,7 +81,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(36, 307);
+            this.label3.Location = new System.Drawing.Point(346, 244);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(69, 17);
             this.label3.TabIndex = 13;
@@ -91,10 +91,10 @@
             // textBox_Username
             // 
             this.textBox_Username.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_Username.Location = new System.Drawing.Point(116, 74);
+            this.textBox_Username.Location = new System.Drawing.Point(139, 74);
             this.textBox_Username.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_Username.Name = "textBox_Username";
-            this.textBox_Username.Size = new System.Drawing.Size(104, 22);
+            this.textBox_Username.Size = new System.Drawing.Size(128, 22);
             this.textBox_Username.TabIndex = 20;
             // 
             // label5
@@ -104,7 +104,7 @@
             this.label5.Location = new System.Drawing.Point(4, 144);
             this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(104, 17);
+            this.label5.Size = new System.Drawing.Size(127, 17);
             this.label5.TabIndex = 18;
             this.label5.Text = "Password:";
             // 
@@ -115,7 +115,7 @@
             this.label4.Location = new System.Drawing.Point(4, 76);
             this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(104, 17);
+            this.label4.Size = new System.Drawing.Size(127, 17);
             this.label4.TabIndex = 17;
             this.label4.Text = "Username:";
             // 
@@ -125,7 +125,7 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(3, 42);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(106, 17);
+            this.label2.Size = new System.Drawing.Size(129, 17);
             this.label2.TabIndex = 10;
             this.label2.Text = "Port:";
             // 
@@ -135,9 +135,10 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(3, 8);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(106, 17);
+            this.label1.Size = new System.Drawing.Size(129, 17);
             this.label1.TabIndex = 9;
             this.label1.Text = "IP:";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // button_connect
             // 
@@ -149,7 +150,7 @@
             this.button_connect.Location = new System.Drawing.Point(3, 104);
             this.button_connect.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button_connect.Name = "button_connect";
-            this.button_connect.Size = new System.Drawing.Size(106, 30);
+            this.button_connect.Size = new System.Drawing.Size(129, 30);
             this.button_connect.TabIndex = 16;
             this.button_connect.Text = "Connect";
             this.button_connect.UseVisualStyleBackColor = true;
@@ -158,19 +159,19 @@
             // textBox_Port_input
             // 
             this.textBox_Port_input.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_Port_input.Location = new System.Drawing.Point(115, 40);
+            this.textBox_Port_input.Location = new System.Drawing.Point(138, 40);
             this.textBox_Port_input.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_Port_input.Name = "textBox_Port_input";
-            this.textBox_Port_input.Size = new System.Drawing.Size(106, 22);
+            this.textBox_Port_input.Size = new System.Drawing.Size(130, 22);
             this.textBox_Port_input.TabIndex = 12;
             // 
             // textBox_IP_input
             // 
             this.textBox_IP_input.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_IP_input.Location = new System.Drawing.Point(115, 6);
+            this.textBox_IP_input.Location = new System.Drawing.Point(138, 6);
             this.textBox_IP_input.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_IP_input.Name = "textBox_IP_input";
-            this.textBox_IP_input.Size = new System.Drawing.Size(106, 22);
+            this.textBox_IP_input.Size = new System.Drawing.Size(130, 22);
             this.textBox_IP_input.TabIndex = 11;
             // 
             // tableLayoutPanel1
@@ -189,7 +190,7 @@
             this.tableLayoutPanel1.Controls.Add(this.button_connect, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.button_disconnect, 1, 3);
             this.tableLayoutPanel1.Controls.Add(this.button_Login, 0, 5);
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(34, 61);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(13, 231);
             this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(4);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 6;
@@ -200,24 +201,24 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 16.66667F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 16.66667F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 25F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(224, 207);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(271, 208);
             this.tableLayoutPanel1.TabIndex = 18;
             // 
             // textBox_Password
             // 
             this.textBox_Password.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox_Password.Location = new System.Drawing.Point(116, 142);
+            this.textBox_Password.Location = new System.Drawing.Point(139, 142);
             this.textBox_Password.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_Password.Name = "textBox_Password";
-            this.textBox_Password.Size = new System.Drawing.Size(104, 22);
+            this.textBox_Password.Size = new System.Drawing.Size(128, 22);
             this.textBox_Password.TabIndex = 21;
             this.textBox_Password.UseSystemPasswordChar = true;
             // 
             // button_disconnect
             // 
-            this.button_disconnect.Location = new System.Drawing.Point(115, 105);
+            this.button_disconnect.Location = new System.Drawing.Point(138, 105);
             this.button_disconnect.Name = "button_disconnect";
-            this.button_disconnect.Size = new System.Drawing.Size(105, 28);
+            this.button_disconnect.Size = new System.Drawing.Size(105, 27);
             this.button_disconnect.TabIndex = 23;
             this.button_disconnect.Text = "Disconnect";
             this.button_disconnect.UseVisualStyleBackColor = true;
@@ -234,7 +235,7 @@
             this.button_Login.Location = new System.Drawing.Point(4, 174);
             this.button_Login.Margin = new System.Windows.Forms.Padding(4);
             this.button_Login.Name = "button_Login";
-            this.button_Login.Size = new System.Drawing.Size(216, 29);
+            this.button_Login.Size = new System.Drawing.Size(263, 30);
             this.button_Login.TabIndex = 22;
             this.button_Login.Text = "Login";
             this.button_Login.UseVisualStyleBackColor = true;
@@ -244,7 +245,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(521, 404);
+            this.ClientSize = new System.Drawing.Size(591, 472);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.button_send);
             this.Controls.Add(this.richTextBox1);

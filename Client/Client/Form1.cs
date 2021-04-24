@@ -62,7 +62,7 @@ namespace Client
                 {
                     clientSocket.Connect(IP, port);
                     send_message(name,"User name",MessageCodes.Request); // send username to server and wait for uniqeness check
-                    CommunicationMessage serverResponse = receiveOneMessage();
+                    CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
                     if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
                     {
                         button_connect.Enabled = false;
@@ -70,12 +70,19 @@ namespace Client
                         button_Login.Enabled = true;
                         textBox_Password.Enabled = true;
                         connected = true;
-                        loadKeys(name);
                         richTextBox1.AppendText(serverResponse.message);
+                        try
+                        {
+                            loadKeys(name);
+                        }
+                        catch(Exception ex)
+                        {
+                            richTextBox1.AppendText("Error while loading keys: " + ex.Message +"\n");
+                        }
                     }
                     else // if username is already used 
                     {
-                        richTextBox1.AppendText("Your username must be unique.\n");
+                        richTextBox1.AppendText(serverResponse.message);
                         clientSocket.Close();
                         connected = false;
                     }
@@ -192,6 +199,10 @@ namespace Client
                 byte[] hashedPassword = hashWithSHA384(pass);
                 Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
                 Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
+                string hexaDecimalAES256Key = generateHexStringFromByteArray(AES256Key);
+                string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
+                richTextBox1.AppendText("AES 256 Key: " +hexaDecimalAES256Key+ "\n");
+                richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
                 try
                 {
                     byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
@@ -199,15 +210,16 @@ namespace Client
                     UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                     string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
                     richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
-                    /*
-                    string randomNumber = receiveOneMessage();
-
-                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                    clientSocket.Send(signedNonce);//Challenge-response phase 1 initiated here
+                    CommunicationMessage randomNumberMessage = receiveOneMessage();
+                    string randomNumber = randomNumberMessage.message;
+                    byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
+                    richTextBox1.AppendText(generateHexStringFromByteArray(randomNumberBytes));
+                    //byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                    //clientSocket.Send(signedNonce);//Challenge-response phase 1 initiated here
 
 
                     // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
-                    */
+                   
 
                 }
                 catch(Exception ex)
@@ -215,7 +227,6 @@ namespace Client
                     AES256Key = new byte[32];
                     AES256IV = new byte[16];
                     richTextBox1.AppendText("Wrong password. Please try again.\n");
-                    richTextBox1.AppendText(ex.Message);
                 }
            
 
@@ -593,6 +604,11 @@ namespace Client
         }
 
         private void label3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label1_Click(object sender, EventArgs e)
         {
 
         }
