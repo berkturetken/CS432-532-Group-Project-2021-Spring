@@ -196,6 +196,7 @@ namespace Client
             {
                 string pass = textBox_Password.Text;
 
+                //Password hashing and creating AES-256 Key and IV
                 byte[] hashedPassword = hashWithSHA384(pass);
                 Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
                 Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
@@ -203,22 +204,28 @@ namespace Client
                 string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
                 richTextBox1.AppendText("AES 256 Key: " +hexaDecimalAES256Key+ "\n");
                 richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
+
+
                 try
                 {
+                    //Decrypt the Private Key using AES-256 
                     byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
-                    //richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
                     UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                     string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
                     richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
+
+                    //Get Random Number from Server
                     CommunicationMessage randomNumberMessage = receiveOneMessage();
                     string randomNumber = randomNumberMessage.message;
                     byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
-                    richTextBox1.AppendText(generateHexStringFromByteArray(randomNumberBytes));
-                    //byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                    richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes));
+
+                    //Sign the Random Number
+                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                    richTextBox1.AppendText("Nonce Length"+signedNonce.Length.ToString());
                     //clientSocket.Send(signedNonce);//Challenge-response phase 1 initiated here
 
 
-                    // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
                    
 
                 }
