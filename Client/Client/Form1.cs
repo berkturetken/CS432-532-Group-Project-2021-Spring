@@ -26,12 +26,14 @@ namespace Client
         bool authenticated = false;
         Socket serverSocket;
 
-        private string ServerKey = ""; // path to server's public key file (taken when browse1 clicked)
-        private string UserPublicKey = "";// path to user's pub/prv key file (taken when browse2 clicked)
+        private string ServerKey = ""; 
+        private string UserPublicKey = "";
         private string UserEncryptedPrivateKey = "";
         private string UserPrivateKey = "";
         private byte[] AES256Key = new byte[32];
         private byte[] AES256IV = new byte[16];
+
+
         public Form1()
         {
             Control.CheckForIllegalCrossThreadCalls = false;
@@ -65,12 +67,15 @@ namespace Client
                     CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
                     if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
                     {
+                        // Change button settings
                         button_connect.Enabled = false;
                         button_disconnect.Enabled = true;
                         button_Login.Enabled = true;
                         textBox_Password.Enabled = true;
                         connected = true;
                         richTextBox1.AppendText(serverResponse.message);
+
+                        //Load keys client public key, encrypted client private key, server public key
                         try
                         {
                             loadKeys(name);
@@ -91,6 +96,12 @@ namespace Client
                 }
                 catch
                 {
+                    //Change button settings to initial
+                    button_send.Enabled = false;
+                    textBox_message.Enabled = false;
+                    button_Login.Enabled = false;
+                    textBox_Password.Enabled = false;
+                    button_disconnect.Enabled = false;
                     richTextBox1.AppendText("Could not connect to the server.\n");
                 }
 
@@ -113,8 +124,7 @@ namespace Client
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
                     serverSocket.Receive(buffer);
 
-                    string incomingMessage = Encoding.Default.GetString(buffer);
-                    incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf('\0'));
+                    string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
 
                     richTextBox1.AppendText(incomingMessage + "\n");
 
@@ -138,6 +148,7 @@ namespace Client
 
         private void loadKeys(string name)
         {
+            //Load server public key
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
             {
                 ServerKey = fileReader.ReadLine();
@@ -146,6 +157,7 @@ namespace Client
                 richTextBox1.AppendText("Server Public Key: "+hexaServerKey + "\n");
             }
 
+            //Load user public key
             string userPublicKeyFile = name + "_pub.txt";
 
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
@@ -156,6 +168,7 @@ namespace Client
                 richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
             }
 
+            //Load user encrypted private key
             string userEncryptedFileName = "enc_" + name + "_pub_prv.txt";
 
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userEncryptedFileName))
@@ -214,24 +227,49 @@ namespace Client
                     string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
                     richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
 
-                    //Get Random Number from Server
-                    CommunicationMessage randomNumberMessage = receiveOneMessage();
-                    string randomNumber = randomNumberMessage.message;
-                    byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
-                    richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes));
-
-                    //Sign the Random Number
-                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                    string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
-                    send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
-                    richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
-                    //Challenge-response phase 1 initiated here
 
 
-                   
+                    try
+                    {
+                        //Get Random Number from Server
+                        CommunicationMessage randomNumberMessage = receiveOneMessage();
+                        string randomNumber = randomNumberMessage.message;
+                        byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
+                        richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes) + "\n");
+
+                        try
+                        {
+                            //Sign the Random Number and Send it to the server
+                            byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                            string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
+                            send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
+                            richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                        }
+                        catch
+                        {
+                            button_send.Enabled = false;
+                            textBox_message.Enabled = false;
+                            button_Login.Enabled = false;
+                            textBox_Password.Enabled = false;
+                            button_disconnect.Enabled = false;
+                            serverSocket.Close();
+                            richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
+                        }
+                    }
+                    catch
+                    {
+                        button_send.Enabled = false;
+                        textBox_message.Enabled = false;
+                        button_Login.Enabled = false;
+                        textBox_Password.Enabled = false;
+                        button_disconnect.Enabled = false;
+                        serverSocket.Close();
+                        richTextBox1.AppendText("Error during random number receiving from Server!\n");
+                        
+                    }
 
                 }
-                catch(Exception ex)
+                catch
                 {
                     AES256Key = new byte[32];
                     AES256IV = new byte[16];
@@ -254,12 +292,6 @@ namespace Client
                  * and user understands that he/she entered the password wrong. 
                  * (inform the user about the wrong password and ask for it again)*/
 
-                // TODO: handle receiver thread 
-                // in receiver thread;
-                // TODO: receive 128 bit random number 
-                /* the client signs this random number using his/her private RSA key and sends this signature to the server. 
-                 * The hash algorithm used in signature is SHA-512.*/
-
                 // TODO: verify the signature comes from server
                 /*If verified, the client will decrypt the HMAC key using his/her own private RSA key and store it in the memory*/
 
@@ -271,7 +303,8 @@ namespace Client
 
         }
 
-        private void send_message(string message, string topic, MessageCodes code) //sends username
+        // Sends any kind of message to the server
+        private void send_message(string message, string topic, MessageCodes code) 
         {
             CommunicationMessage msg = new CommunicationMessage();
             msg.topic = topic;
@@ -282,6 +315,7 @@ namespace Client
             serverSocket.Send(buffer);
         }
 
+        //Receive one-time messages and returning a message object
         private CommunicationMessage receiveOneMessage()
         {
             Byte[] buffer = new Byte[128];
@@ -290,6 +324,8 @@ namespace Client
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
             return msg;
         }
+
+
         private void button_disconnect_Click(object sender, EventArgs e)
         {
             richTextBox1.AppendText("You disconnected\n");
@@ -303,7 +339,9 @@ namespace Client
         }
 
 
-        // helper functions
+        /* HELPER FUNCTIONS */
+
+
         static string generateHexStringFromByteArray(byte[] input)
         {
             string hexString = BitConverter.ToString(input);
