@@ -31,6 +31,7 @@ namespace Client
         private string UserPublicKey = "";
         private string UserEncryptedPrivateKey = "";
         private string UserPrivateKey = "";
+        private string SessionKey = "";
         private byte[] AES256Key = new byte[32];
         private byte[] AES256IV = new byte[16];
 
@@ -210,6 +211,18 @@ namespace Client
                                 string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
                                 send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
                                 richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                                /*
+                                try
+                                {
+                                    byte[] verificationBytes = new byte[128];
+                                    serverSocket.Receive(verificationBytes);
+                                    string verificationString = Encoding.Default.GetString(verificationBytes);
+                                    string hmacMessage = verificationString.Substring(0,)
+                                }
+                                catch
+                                {
+
+                                }*/
                             }
                             catch
                             {
@@ -278,7 +291,6 @@ namespace Client
             msg.message = message;
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
-            richTextBox1.AppendText("Lenght " + jsonObject.Length.ToString());
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
             serverSocket.Send(buffer);
         }
