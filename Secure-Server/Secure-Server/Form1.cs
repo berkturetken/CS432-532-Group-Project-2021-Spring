@@ -262,21 +262,29 @@ namespace Secure_Server
         {
             int serverPort;
 
-            if (Int32.TryParse(textBox_port_input.Text, out serverPort))
+            if (serverPrivateKey == "" || serverPublicKey == "" || mainRepositoryPath == "")
             {
-                serverSocket.Bind(new IPEndPoint(IPAddress.Any, serverPort));
-                serverSocket.Listen(3);
-
-                listening = true;
-                button_listen.Enabled = false;
-                Thread acceptThread = new Thread(Accept);
-                acceptThread.Start();
-
-                richTextBox_ConsoleOut.AppendText("Started listening on port: " + serverPort + "\n");
+                richTextBox_ConsoleOut.AppendText("Please brwose all files and folders first!");
             }
             else
             {
-                richTextBox_ConsoleOut.AppendText("Please check port number \n");
+
+                if (Int32.TryParse(textBox_port_input.Text, out serverPort))
+                {
+                    serverSocket.Bind(new IPEndPoint(IPAddress.Any, serverPort));
+                    serverSocket.Listen(3);
+
+                    listening = true;
+                    button_listen.Enabled = false;
+                    Thread acceptThread = new Thread(Accept);
+                    acceptThread.Start();
+
+                    richTextBox_ConsoleOut.AppendText("Started listening on port: " + serverPort + "\n");
+                }
+                else
+                {
+                    richTextBox_ConsoleOut.AppendText("Please check port number \n");
+                }
             }
         }
 
