@@ -55,8 +55,7 @@ namespace Secure_Server
             string randomNumber = randomNumberGenerator(16);
             try
             {
-                string randomNumberMessage = createCommunicationMessage(MessageCodes.Request, "RN", randomNumber);
-                sendMessage(client, randomNumberMessage);
+                sendMessage(client, MessageCodes.Request, "RN", randomNumber);
                 
                 Byte[] signedRandomNumberBuffer = new Byte[1088];
                 client.Receive(signedRandomNumberBuffer);
@@ -84,31 +83,56 @@ namespace Secure_Server
                             // Add to dictionary
                             userHMACKeys.Add(username, hmacKey);
 
+                            // Needs to be in a function
                             byte[] encryptedHMAC = encryptWithRSA(hmacKey, 4096, clientPubKey);
-                            string hmacMessage = createCommunicationMessage(MessageCodes.SuccessfulResponse, "Session Key", Encoding.Default.GetString(encryptedHMAC));
-                            richTextBox_ConsoleOut.AppendText("Length of HMAC Message: " + hmacMessage.Length.ToString() + "\n");
+                            CommunicationMessage hmacMessage = new CommunicationMessage {
+                                msgCode = MessageCodes.SuccessfulResponse,
+                                topic = "Session Key",
+                                message = Encoding.Default.GetString(encryptedHMAC)
+                            };
                             string hmacMessageJSON = JsonConvert.SerializeObject(hmacMessage);
 
                             // Sign the message
                             byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
+                            
 
-                            // Merge
-                            string sessionKeyAgreement = hmacMessageJSON + Encoding.Default.GetString(signedMessage);
-                            richTextBox_ConsoleOut.AppendText("Length of Session Key Agreement: " + sessionKeyAgreement.Length.ToString() + "\n");
-                            // Send the Session Key Agreement to corresponding client
-                            //sendMessage(client, sessionKeyAgreement);
                         }
                     }
                     catch (Exception exc)
                     {
-                        richTextBox_ConsoleOut.AppendText("In challenge response: " + exc.Message + "\n");
+                        richTextBox_ConsoleOut.AppendText(exc.Message + "\n");
                     }
                 }
+
+
+                //check the signature on bytesRandom
+                string userPublicKeyFile = username + "_pub.txt";
+                string client4096BitPublicKey;
+
+                using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
+                {
+                    client4096BitPublicKey = fileReader.ReadLine();
+                }
+
+                //bool signCheck= verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, signedRandomNumberBuffer);    //buffer might need to be pruned
+                /*
+                if(!signCheck)
+                {
+                    richTextBox_ConsoleOut.AppendText("RSA signature is wrong\n"); //DEBUG
+                    throw new Exception();
+                }
+                else
+                {
+                    richTextBox_ConsoleOut.AppendText("RSA signature successful\n"); //DEBUG
+                }
+                */
+
             }
-            catch   // If an error is encountered
+            catch//if an error is encountered
             {
                 throw new Exception();
             }
+
         }
 
         private void Receive(Socket s, string username) //username is send from accept thread, to be used to find files in public key repo. 
@@ -198,9 +222,8 @@ namespace Secure_Server
                     {
                         if (usernames[i] == username)   //if username is already exists in usernames list
                         {
-                            richTextBox_ConsoleOut.AppendText("This client already exists!\n");
-                            string message = createCommunicationMessage(MessageCodes.ErrorResponse, "User name", "You are already connected!\n");
-                            sendMessage(newClient, message);    //sends message to client
+                            richTextBox_ConsoleOut.AppendText("This client already exists!\n");           
+                            sendMessage(newClient, MessageCodes.ErrorResponse, "User name", "You are already connected!\n"); //sends message to client
                             newClient.Close();  // and closes the socket
                             con = false;
                         }
@@ -213,8 +236,7 @@ namespace Secure_Server
                     {
                         socketList.Add(newClient);
                         richTextBox_ConsoleOut.AppendText("A client is connected.\n");
-                        string message = createCommunicationMessage(MessageCodes.SuccessfulResponse, "User name", "You connected succesfully!\n");
-                        sendMessage(newClient, message);
+                        sendMessage(newClient, MessageCodes.SuccessfulResponse, "User name", "You connected succesfully!\n");
                         usernames.Add(username);
                         addClientPubKey(username);
                         richTextBox_ConsoleOut.AppendText("Client username: " + username + "\n");
@@ -302,22 +324,17 @@ namespace Secure_Server
             receiver.Send(buffer);
         }
 
-        public string createCommunicationMessage(MessageCodes msgCode, string topic, string message)
+        public void sendMessage(Socket receiver, MessageCodes msgCode, string topic, string text)
         {
             CommunicationMessage msg = new CommunicationMessage
             {
                 msgCode = msgCode,
                 topic = topic,
-                message = message
+                message = text
             };
             string msgJSON = JsonConvert.SerializeObject(msg);
-            return msgJSON;
-        }
-
-        public void sendMessage(Socket s, string m)
-        {
-            Byte[] buffer = Encoding.Default.GetBytes(m);
-            s.Send(buffer);
+            Byte[] buffer = Encoding.Default.GetBytes(msgJSON);
+            receiver.Send(buffer);
         }
 
         public void receiveMessage(Socket s, string incomingMessage)
