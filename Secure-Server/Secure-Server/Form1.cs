@@ -10,25 +10,23 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
 using System.Security.Cryptography;
+using Newtonsoft.Json;
+using Secure_Server.Models;
 
 namespace Secure_Server
 {
-
     public partial class Form1 : Form
     {
-
         bool terminating = false;
         bool listening = false;
         //bool remoteConnected = false;
-
+        
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         List<Socket> socketList = new List<Socket>();
         List<string> usernames = new List<string>();
-
-        private string KeyFile = ""; // path to server's pub/prv key file (taken when browse1 clicked)
-        private string MainRepo = ""; // path to server's client public key repository (taken when browse2 clicked)
+        string username = "";
+        string signedRandom = "";
 
         public Form1()
         {
@@ -46,52 +44,59 @@ namespace Secure_Server
 
         private void ChallengeResponsePhase1(Socket client,string username)
         {
-            Byte[] bytesRandom = new Byte[32];//128 BIT RANDOM NUMBER
+            Byte[] bytesRandom = new Byte[16];                      //128 BIT RANDOM NUMBER
             using (var rng = new RNGCryptoServiceProvider())
             {
                 rng.GetBytes(bytesRandom);
             }
 
-
             try
             {
-                client.Send(bytesRandom);//Random Number is Sent, Client will sign it with his RSA private key
-
-                string randomNumber = Encoding.Default.GetString(bytesRandom);
-                try
-                {
-                    randomNumber = randomNumber.Substring(0, randomNumber.IndexOf("\0"));
-                }
-                catch
-                {
-                    
-                }
-
-                Byte[] buffer = new Byte[64];
-                client.Receive(buffer);
-
-                string signedRandom = Encoding.Default.GetString(buffer);
-                try
-                {
-                    signedRandom = signedRandom.Substring(0, signedRandom.IndexOf("\0"));
-                }
-                catch
-                {
-
-                }
+                //client.Send(bytesRandom);     //Random Number is Sent, Client will sign it with his RSA private key
+                string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
+                sendMessage(client, MessageCodes.Request, "RN", randomNumber);
+                richTextBox_ConsoleOut.AppendText("128-bit Random Number:\n" + generateHexStringFromByteArray(bytesRandom) + "\n");
                 
+                Byte[] signedRandomNumberBuffer = new Byte[1024];
+                client.Receive(signedRandomNumberBuffer);
+                string inMessage = Encoding.Default.GetString(signedRandomNumberBuffer).Trim('\0');
+                richTextBox_ConsoleOut.AppendText(inMessage+"\n");
+                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+
+                if (msg.msgCode == MessageCodes.Request)
+                {
+                    richTextBox_ConsoleOut.AppendText("Inside if...\n");
+                    signedRandom = msg.message;
+                    
+                    string userPublicKeyFile = username + "_pub.txt";
+                    string client4096BitPublicKey;
+                    try
+                    {
+                        using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
+                        {
+                            client4096BitPublicKey = fileReader.ReadLine();
+                        }
+                        bool test = verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, hexStringToByteArray(signedRandom));
+                        richTextBox_ConsoleOut.AppendText(test.ToString());
+                    }
+                    catch (Exception exc)
+                    {
+                        richTextBox_ConsoleOut.AppendText(exc.Message + "\n");
+                    }
+                }
+
 
                 //check the signature on bytesRandom
-                string userPublicKeyFile = username + "_pub.txt";
-                string client4096BitPublicKey;
+                //string userPublicKeyFile = username + "_pub.txt";
+                //string client4096BitPublicKey;
 
-                using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
-                {
-                    client4096BitPublicKey = fileReader.ReadLine();
-                }
+                //using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
+                //{
+                //    client4096BitPublicKey = fileReader.ReadLine();
+                //}
 
-                bool signCheck= verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, buffer);//buffer might need to be pruned
-
+                //bool signCheck= verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, signedRandomNumberBuffer);    //buffer might need to be pruned
+                /*
                 if(!signCheck)
                 {
                     richTextBox_ConsoleOut.AppendText("RSA signature is wrong\n"); //DEBUG
@@ -101,6 +106,8 @@ namespace Secure_Server
                 {
                     richTextBox_ConsoleOut.AppendText("RSA signature successful\n"); //DEBUG
                 }
+                */
+                
             }
             catch//if an error is encountered
             {
@@ -115,10 +122,11 @@ namespace Secure_Server
             /*SERVER PHASE 1 CHALLENGE-RESPONSE*/
             try
             {
-                ChallengeResponsePhase1(s,username);
+                ChallengeResponsePhase1(s, username);
             }
             catch(Exception ex)//challenge-response failed
             {
+                richTextBox_ConsoleOut.AppendText("Challenge-Response Exception: " + ex.Message);
                 if (!terminating)
                 {   
                     richTextBox_ConsoleOut.AppendText(String.Format("Challenge-response failed for {0}\n",username));
@@ -177,26 +185,27 @@ namespace Secure_Server
             {
                 try
                 {
-
                     Socket newClient = serverSocket.Accept();
 
-                    //----------------------- 
-
                     Byte[] buffer = new Byte[64];
-                    newClient.Receive(buffer);  //receive username
-                    string username = Encoding.Default.GetString(buffer);
-                    username = username.Substring(0, username.IndexOf("\0"));
-                    
+                    newClient.Receive(buffer);  // Receive username
+
+                    string inMessage = Encoding.Default.GetString(buffer).Trim('\0');
+                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+                    if (msg.msgCode == MessageCodes.Request)
+                    {
+                        username = msg.message;
+                    }
 
                     int i = 0;
                     bool con = true;
                     while (i < usernames.Count() && con == true)
                     {
-                        if (usernames[i] == username) //if username is already exists in usernames list
+                        if (usernames[i] == username)   //if username is already exists in usernames list
                         {
-                            richTextBox_ConsoleOut.AppendText("This client already exist\n");
-                            sendStringMessage(newClient, "already connected\n");//sends message to client
-                            newClient.Close();      // and closes the socket
+                            richTextBox_ConsoleOut.AppendText("This client already exists!\n");           
+                            sendMessage(newClient, MessageCodes.ErrorResponse, "User name", "You are already connected!\n"); //sends message to client
+                            newClient.Close();  // and closes the socket
                             con = false;
                         }
                         else
@@ -208,14 +217,12 @@ namespace Secure_Server
                     {
                         socketList.Add(newClient);
                         richTextBox_ConsoleOut.AppendText("A client is connected.\n");
-                        sendStringMessage(newClient, "Connection Successful\n");
+                        sendMessage(newClient, MessageCodes.SuccessfulResponse, "User name", "You connected succesfully!\n");
                         usernames.Add(username);
                         richTextBox_ConsoleOut.AppendText("Client username: " + username + "\n");
                         Thread receiveThread = new Thread(() => Receive(newClient, username));
-                        receiveThread.Start();//Login protocol initiates
+                        receiveThread.Start();  //Login protocol initiates
                     }
-
-
                 }
                 catch
                 {
@@ -230,8 +237,6 @@ namespace Secure_Server
                 }
             }
         }
-
-
 
         private void button_listen_Click(object sender, EventArgs e)
         {
@@ -255,31 +260,7 @@ namespace Secure_Server
             }
         }
 
-
-        private void button_browse_keyFile_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            dlg.Title = "File Sharing Client";
-            dlg.ShowDialog();
-            textBox_KeyFilePath.Text = dlg.FileName;
-            KeyFile = dlg.FileName;
-        }
-
-        private void button_browse_repoPath_Click(object sender, EventArgs e)
-        {
-            FolderBrowserDialog folderDlg = new FolderBrowserDialog();
-            folderDlg.ShowNewFolderButton = true;
-            DialogResult result = folderDlg.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                textBox_RepoPath.Text = folderDlg.SelectedPath;
-                MainRepo = folderDlg.SelectedPath;
-                Environment.SpecialFolder root = folderDlg.RootFolder;
-            }
-        }
-
-
-        // helper functions
+        // Helper Functions
         static string generateHexStringFromByteArray(byte[] input)
         {
             string hexString = BitConverter.ToString(input);
@@ -301,9 +282,26 @@ namespace Secure_Server
             receiver.Send(buffer);
         }
 
+        public void sendMessage(Socket receiver, MessageCodes msgCode, string topic, string text)
+        {
+            CommunicationMessage msg = new CommunicationMessage
+            {
+                msgCode = msgCode,
+                topic = topic,
+                message = text
+            };
+            string msgJSON = JsonConvert.SerializeObject(msg);
+            Byte[] buffer = Encoding.Default.GetBytes(msgJSON);
+            receiver.Send(buffer);
+        }
+
+        public void receiveMessage(Socket s, string incomingMessage)
+        {
+
+        }
+
 
         /*    HASH    */
-
         // hash function: SHA-256
         static byte[] hashWithSHA256(string input)
         {
@@ -383,7 +381,6 @@ namespace Secure_Server
         }
 
         /*    SYMMETRIC CIPHERS     */
-
         // encryption with AES-128
         static byte[] encryptWithAES128(string input, byte[] key, byte[] IV)
         {
@@ -566,7 +563,6 @@ namespace Secure_Server
             return result;
         }
 
-
         // decryption with AES-256
         static byte[] decryptWithAES256(string input, byte[] key, byte[] IV)
         {
@@ -602,8 +598,8 @@ namespace Secure_Server
 
             return result;
         }
+        
         /*    PUBLIC KEY CRYPTOGRAPHY    */
-
         // RSA encryption with varying bit length
         static byte[] encryptWithRSA(string input, int algoLength, string xmlStringKey)
         {
@@ -687,7 +683,7 @@ namespace Secure_Server
 
             try
             {
-                result = rsaObject.VerifyData(byteInput, "SHA256", signature);
+                result = rsaObject.VerifyData(byteInput, "SHA512", signature);
             }
             catch (Exception e)
             {
@@ -696,7 +692,6 @@ namespace Secure_Server
 
             return result;
         }
-
 
     }
 }
