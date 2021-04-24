@@ -52,14 +52,14 @@ namespace Client
 
             string serverRespond;
 
-            if (Int32.TryParse(textBox_Port_input.Text, out port)) 
+            if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
                 try
                 {
                     clientSocket.Connect(IP, port);
                     send_message(name); // send username to server and wait for uniqeness check
                     serverRespond = receiveOneMessage();
-                    if (serverRespond != "already connected\n" ) // if unique
+                    if (serverRespond != "already connected\n") // if unique
                     {
                         button_connect.Enabled = false;
                         button_disconnect.Enabled = true;
@@ -101,7 +101,7 @@ namespace Client
 
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
                     clientSocket.Receive(buffer);
-            
+
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf('\0'));
 
@@ -127,7 +127,7 @@ namespace Client
 
         private void loadKeys(string name)
         {
-            using(System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
+            using (System.IO.StreamReader fileReader = new System.IO.StreamReader("server_pub.txt"))
             {
                 ServerKey = fileReader.ReadLine();
 
@@ -147,7 +147,7 @@ namespace Client
             using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userEncryptedFileName))
             {
                 UserEncryptedPrivateKey = fileReader.ReadLine();
-       
+
                 //richTextBox1.AppendText("User Encrypted Key"+UserEncryptedPrivateKey); DEBUG
             }
 
@@ -158,6 +158,7 @@ namespace Client
         {
             connected = false;
             terminating = true;
+            clientSocket.Close();
             Environment.Exit(0);
         }
 
@@ -173,7 +174,7 @@ namespace Client
             }
         }
 
-       
+
 
         private void button_Login_Click(object sender, EventArgs e)// Login protocol 
         {
@@ -188,15 +189,29 @@ namespace Client
                 try
                 {
                     byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
-                    richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
+                    //richTextBox1.AppendText(decryptedPasswordBytes.Length.ToString());
                     UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                     string randomNumber = receiveOneMessage();
- 
-                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                    clientSocket.Send(signedNonce);
-                    
 
-                   // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
+                    byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                    clientSocket.Send(signedNonce);//Challenge-response phase 1 initiated here
+
+
+                    // richTextBox1.AppendText("user private key" + UserPrivateKey); //DEBUG PURPOSES
+
+
+                }
+                catch (SocketException ex)
+                {
+
+                    richTextBox1.AppendText("Server closed the connection\n");
+                    connected = false;
+                    button_connect.Enabled = true;
+                    button_disconnect.Enabled = false;
+                    button_Login.Enabled = false;
+                    textBox_Password.Enabled = false;
+                    clientSocket.Close();
+
 
 
                 }
@@ -228,7 +243,7 @@ namespace Client
                 // TODO: receive 128 bit random number 
                 /* the client signs this random number using his/her private RSA key and sends this signature to the server. 
                  * The hash algorithm used in signature is SHA-512.*/
-                 
+
                 // TODO: verify the signature comes from server
                 /*If verified, the client will decrypt the HMAC key using his/her own private RSA key and store it in the memory*/
 
@@ -237,7 +252,7 @@ namespace Client
             }
 
 
-            
+
         }
 
         private void send_message(string message) //sends username
@@ -258,8 +273,13 @@ namespace Client
         private void button_disconnect_Click(object sender, EventArgs e)
         {
             richTextBox1.AppendText("You disconnected\n");
-            clientSocket.Close();
             connected = false;
+            button_connect.Enabled = true;
+            button_disconnect.Enabled = false;
+            button_Login.Enabled = false;
+            textBox_Password.Enabled = false;
+            clientSocket.Close();
+
         }
 
 
@@ -430,7 +450,7 @@ namespace Client
             }
             catch (Exception e) // if encryption fails
             {
-                
+
                 Console.WriteLine(e.Message); // display the cause
             }
 

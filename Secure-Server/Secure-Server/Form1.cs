@@ -15,7 +15,7 @@ using System.Security.Cryptography;
 
 namespace Secure_Server
 {
-    
+
     public partial class Form1 : Form
     {
 
@@ -44,16 +44,99 @@ namespace Secure_Server
             Environment.Exit(0);
         }
 
+        private void ChallengeResponsePhase1(Socket client,string username)
+        {
+            Byte[] bytesRandom = new Byte[32];//128 BIT RANDOM NUMBER
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(bytesRandom);
+            }
+
+
+            try
+            {
+                client.Send(bytesRandom);//Random Number is Sent, Client will sign it with his RSA private key
+
+                string randomNumber = Encoding.Default.GetString(bytesRandom);
+                try
+                {
+                    randomNumber = randomNumber.Substring(0, randomNumber.IndexOf("\0"));
+                }
+                catch
+                {
+                    
+                }
+
+                Byte[] buffer = new Byte[64];
+                client.Receive(buffer);
+
+                string signedRandom = Encoding.Default.GetString(buffer);
+                try
+                {
+                    signedRandom = signedRandom.Substring(0, signedRandom.IndexOf("\0"));
+                }
+                catch
+                {
+
+                }
+                
+
+                //check the signature on bytesRandom
+                string userPublicKeyFile = username + "_pub.txt";
+                string client4096BitPublicKey;
+
+                using (System.IO.StreamReader fileReader = new System.IO.StreamReader(userPublicKeyFile))
+                {
+                    client4096BitPublicKey = fileReader.ReadLine();
+                }
+
+                bool signCheck= verifyWithRSA(randomNumber, 4096, client4096BitPublicKey, buffer);//buffer might need to be pruned
+
+                if(!signCheck)
+                {
+                    richTextBox_ConsoleOut.AppendText("RSA signature is wrong\n"); //DEBUG
+                    throw new Exception();
+                }
+                else
+                {
+                    richTextBox_ConsoleOut.AppendText("RSA signature successful\n"); //DEBUG
+                }
+            }
+            catch//if an error is encountered
+            {
+                throw new Exception();
+            }
+
+        }
+
         private void Receive(Socket s, string username) //username is send from accept thread, to be used to find files in public key repo. 
         {
             bool connected = true;
+            /*SERVER PHASE 1 CHALLENGE-RESPONSE*/
+            try
+            {
+                ChallengeResponsePhase1(s,username);
+            }
+            catch(Exception ex)//challenge-response failed
+            {
+                if (!terminating)
+                {   
+                    richTextBox_ConsoleOut.AppendText(String.Format("Challenge-response failed for {0}\n",username));
+                }
+                usernames.Remove(username);
+                s.Close();
+                socketList.Remove(s);
+                connected = false;
+            }
+           
 
+            /*Part below is for post-authentication protocols*/
             while (connected && !terminating)
             {
                 try
                 {
                     // TODO: server sends a 128-bit random number to the client to initiate the challenge-response protocol.
-                    
+
                     Byte[] buffer = new Byte[64];
                     s.Receive(buffer);
 
@@ -74,14 +157,13 @@ namespace Secure_Server
                     /* If authentication protocol fails, the connection must be closed,
                      * connection/authentication can be initiated again through the GUI.*/
                 }
-
                 catch
                 {
                     if (!terminating)
                     {
                         richTextBox_ConsoleOut.AppendText("A client has disconnected\n");
                     }
-
+                    usernames.Remove(username);
                     s.Close();
                     socketList.Remove(s);
                     connected = false;
@@ -104,53 +186,35 @@ namespace Secure_Server
                     newClient.Receive(buffer);  //receive username
                     string username = Encoding.Default.GetString(buffer);
                     username = username.Substring(0, username.IndexOf("\0"));
+                    
 
-                    bool isEmpty = !usernames.Any(); //if usernames list is empty, it is true
-
-                    string temp = "already connected\n";  //message to sent to client if its username is not unique
-                    Byte[] buffer2 = Encoding.Default.GetBytes(temp);
-                    string temp2 = "bla bla";   //dummy message to send otherwise
-                    Byte[] buffer3 = Encoding.Default.GetBytes(temp2);
-
-                    if (isEmpty) //if list is initially empty, username will directly be added to the list
+                    int i = 0;
+                    bool con = true;
+                    while (i < usernames.Count() && con == true)
+                    {
+                        if (usernames[i] == username) //if username is already exists in usernames list
+                        {
+                            richTextBox_ConsoleOut.AppendText("This client already exist\n");
+                            sendStringMessage(newClient, "already connected\n");//sends message to client
+                            newClient.Close();      // and closes the socket
+                            con = false;
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+                    if (con == true) //if username could not be found in the list
                     {
                         socketList.Add(newClient);
                         richTextBox_ConsoleOut.AppendText("A client is connected.\n");
-                        newClient.Send(buffer3); //sends dummy message
+                        sendStringMessage(newClient, "Connection Successful\n");
                         usernames.Add(username);
                         richTextBox_ConsoleOut.AppendText("Client username: " + username + "\n");
-                        Thread receiveThread = new Thread(() => Receive(newClient, username)); // calls Receive function to recieve files
-                        receiveThread.Start();
+                        Thread receiveThread = new Thread(() => Receive(newClient, username));
+                        receiveThread.Start();//Login protocol initiates
                     }
-                    else
-                    {
-                        int i = 0;
-                        bool con = true;
-                        while (i < usernames.Count() && con == true)
-                        {
-                            if (usernames[i] == username) //if username is already exists in usernames list
-                            {
-                                richTextBox_ConsoleOut.AppendText("This client already exist\n");
-                                newClient.Send(buffer2); //sends message to client
-                                newClient.Close();      // and closes the socket
-                                con = false;
-                            }
-                            else
-                            {
-                                i++;
-                            }
-                        }
-                        if (con == true) //if username could not be found in the list
-                        {
-                            socketList.Add(newClient);
-                            richTextBox_ConsoleOut.AppendText("A client is connected.\n");
-                            newClient.Send(buffer3);
-                            usernames.Add(username);
-                            richTextBox_ConsoleOut.AppendText("Client username: " + username + "\n");
-                            Thread receiveThread = new Thread(() => Receive(newClient, username));
-                            receiveThread.Start();
-                        }
-                    }
+
 
                 }
                 catch
@@ -230,6 +294,13 @@ namespace Secure_Server
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             return bytes;
         }
+
+        public void sendStringMessage(Socket receiver, String message)
+        {
+            Byte[] buffer = Encoding.Default.GetBytes(message);
+            receiver.Send(buffer);
+        }
+
 
         /*    HASH    */
 
@@ -626,6 +697,6 @@ namespace Secure_Server
             return result;
         }
 
-        
+
     }
 }
