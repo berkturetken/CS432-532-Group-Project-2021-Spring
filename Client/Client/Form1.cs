@@ -9,11 +9,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using Newtonsoft.Json;
 using System.Security.Cryptography;
+
+using Client.Models;
 
 namespace Client
 {
+
+
     public partial class Form1 : Form
     {
         string name;
@@ -41,6 +45,7 @@ namespace Client
             button_Login.Enabled = false;
             textBox_Password.Enabled = false;
             button_disconnect.Enabled = false;
+            send_message("Buket", "User Name", MessageCodes.Request);
         }
 
         private void button_connect_Click(object sender, EventArgs e)
@@ -50,16 +55,16 @@ namespace Client
             int port;
             name = textBox_Username.Text;
 
-            string serverRespond;
+            
 
             if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
                 try
                 {
                     clientSocket.Connect(IP, port);
-                    send_message(name); // send username to server and wait for uniqeness check
-                    serverRespond = receiveOneMessage();
-                    if (serverRespond != "already connected\n") // if unique
+                    send_message(name,"User name",MessageCodes.Request); // send username to server and wait for uniqeness check
+                    CommunicationMessage serverResponse = receiveOneMessage();
+                    if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
                     {
                         button_connect.Enabled = false;
                         button_disconnect.Enabled = true;
@@ -243,20 +248,25 @@ namespace Client
 
         }
 
-        private void send_message(string message) //sends username
+        private void send_message(string message, string topic, MessageCodes code) //sends username
         {
-            Byte[] buffer = new Byte[32];
-            buffer = Encoding.Default.GetBytes(message);
-            clientSocket.Send(buffer);
+            CommunicationMessage msg = new CommunicationMessage();
+            msg.topic = topic;
+            msg.message = message;
+            msg.msgCode = code;
+            string jsonObject = JsonConvert.SerializeObject(msg);
+            richTextBox1.AppendText("jsonObjectDeneme" + jsonObject);     
+            byte[] buffer = Encoding.Default.GetBytes(jsonObject);
+            //clientSocket.Send(buffer);
         }
 
-        private string receiveOneMessage() // receives only one message (respond message for username's uniqueness)
+        private CommunicationMessage receiveOneMessage()
         {
             Byte[] buffer = new Byte[128];
             clientSocket.Receive(buffer);
-            string incomingMessage = Encoding.Default.GetString(buffer);
-            incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf("\0"));
-            return incomingMessage;
+            string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
+            CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
+            return msg;
         }
         private void button_disconnect_Click(object sender, EventArgs e)
         {
