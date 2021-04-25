@@ -218,8 +218,8 @@ namespace Client
                                     serverSocket.Receive(verificationBytes);
                                     string verificationString = Encoding.Default.GetString(verificationBytes).Trim('\0');
 
-                                    string hmacMessage = verificationString.Substring(0, 1072);
-                                    string signatureHexa = verificationString.Substring(1072);
+                                    string hmacMessage = verificationString.Substring(0, verificationString.Length-1024);
+                                    string signatureHexa = verificationString.Substring(verificationString.Length-1024);
                                     byte[] signatureBytes = hexStringToByteArray(signatureHexa);
                                     string signature = Encoding.Default.GetString(signatureBytes);
 
@@ -241,52 +241,46 @@ namespace Client
                                         }
                                         else
                                         {
-                                            button_send.Enabled = false;
-                                            textBox_message.Enabled = false;
-                                            button_Login.Enabled = false;
-                                            textBox_Password.Enabled = false;
-                                            button_disconnect.Enabled = false;
+                                            connectionClosedButtons();
                                             serverSocket.Close();
-                                            richTextBox1.AppendText("Signature can not be verified!\n");
+                                            richTextBox1.AppendText("Signature can not be verified! Connection closed\n");
                                         }
 
                                     }
                                     else
                                     {
-                                        //NEGATIVE ACK.
+                                        bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
+                                        if (isSignatureVerified)
+                                        {
+                                            richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
+
+                                        }
+                                        else
+                                        {
+                                            richTextBox1.AppendText("Server can not be verified! Connection closed\n");
+                                        }
+                                        connectionClosedButtons();
+                                        serverSocket.Close();
                                     }
                                     
                                 }
                                 catch
                                 {
-                                    button_send.Enabled = false;
-                                    textBox_message.Enabled = false;
-                                    button_Login.Enabled = false;
-                                    textBox_Password.Enabled = false;
-                                    button_disconnect.Enabled = false;
+                                    connectionClosedButtons();
                                     serverSocket.Close();
                                     richTextBox1.AppendText("Error during session key receiving!\n");
                                 }
                             }
                             catch
                             {
-                                button_send.Enabled = false;
-                                textBox_message.Enabled = false;
-                                button_Login.Enabled = false;
-                                textBox_Password.Enabled = false;
-                                button_disconnect.Enabled = false;
+                                connectionClosedButtons();
                                 serverSocket.Close();
                                 richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
                             }
                         }
                         catch
                         {
-                            button_send.Enabled = false;
-                            textBox_message.Enabled = false;
-                            button_Login.Enabled = false;
-                            textBox_Password.Enabled = false;
-                            button_disconnect.Enabled = false;
-                            button_connect.Enabled = true;
+                            connectionClosedButtons();
                             serverSocket.Close();
                             richTextBox1.AppendText("Error during random number receiving from Server!\n");
 
@@ -303,6 +297,16 @@ namespace Client
 
             }
 
+        }
+
+        private void connectionClosedButtons()
+        {
+            button_send.Enabled = false;
+            textBox_message.Enabled = false;
+            button_Login.Enabled = false;
+            textBox_Password.Enabled = false;
+            button_disconnect.Enabled = false;
+            button_connect.Enabled = true;
         }
 
         // Sends any kind of message to the server
