@@ -26,14 +26,12 @@ namespace Secure_Server
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         List<Socket> socketList = new List<Socket>();
         List<string> usernames = new List<string>();
-        string username = "";
-        string signedRandom = "";
 
         string serverPublicKey = "";
         string serverPrivateKey = "";
         string mainRepositoryPath = "";
 
-        Dictionary<string, string> userPubKeys = new Dictionary<string,string>();
+        Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
         Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();
 
         public Form1()
@@ -50,7 +48,7 @@ namespace Secure_Server
             Environment.Exit(0);
         }
 
-        private void ChallengeResponsePhase1(Socket client,string username)
+        private bool ChallengeResponsePhase1(Socket client,string username)
         {
             string randomNumber = randomNumberGenerator(16);
             try
@@ -66,49 +64,67 @@ namespace Secure_Server
 
                 if (msg.msgCode == MessageCodes.Request)
                 {
-                    signedRandom = msg.message;
+                    string signedRandom = msg.message;
                              
                     try
                     {
                         string clientPubKey = userPubKeys[username];
                         bool isVerified = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
-                        if (!isVerified)
+                        if (isVerified)
                         {
-                            // Negative acknowledgement
+                            string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "Session Key", "Negative Acknowledgement");
+                            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
+                            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
+                            richTextBox_ConsoleOut.AppendText("Length of Signed Negative Ack: " + hexSignedNegativeAck.Length.ToString() + "\n");
+
+                            string sessionKeyProblem = negativeAckJSON + hexSignedNegativeAck;
+                            sendMessage(client, sessionKeyProblem);
+
+                            // Close the connection
+                            return false;
                         }
                         else
                         {
                             // Positive acknowledgement
                             string hmacKey = randomNumberGenerator(32);
 
-                            // Add to dictionary
-                            userHMACKeys.Add(username, hmacKey);
-
+                            // Encrypt the HMAC Key and serialize it
                             byte[] encryptedHMAC = encryptWithRSA(hmacKey, 4096, clientPubKey);
-                            string hmacMessage = createCommunicationMessage(MessageCodes.SuccessfulResponse, "Session Key", Encoding.Default.GetString(encryptedHMAC));
-                            richTextBox_ConsoleOut.AppendText("Length of HMAC Message: " + hmacMessage.Length.ToString() + "\n");
-                            string hmacMessageJSON = JsonConvert.SerializeObject(hmacMessage);
+                            string hmacMessageJSON = createCommunicationMessage(MessageCodes.SuccessfulResponse, "Session Key", generateHexStringFromByteArray(encryptedHMAC));
+                            richTextBox_ConsoleOut.AppendText("Length of HMAC Message: " + hmacMessageJSON.Length.ToString() + "\n");
 
                             // Sign the message
                             byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
 
                             // Merge
-                            string sessionKeyAgreement = hmacMessageJSON + Encoding.Default.GetString(signedMessage);
+                            string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
                             richTextBox_ConsoleOut.AppendText("Length of Session Key Agreement: " + sessionKeyAgreement.Length.ToString() + "\n");
+                            
                             // Send the Session Key Agreement to corresponding client
-                            //sendMessage(client, sessionKeyAgreement);
+                            sendMessage(client, sessionKeyAgreement);
+
+                            // Add to dictionary
+                            userHMACKeys.Add(username, hmacKey);
                         }
                     }
-                    catch (Exception exc)
+                    catch (Exception e)
                     {
-                        richTextBox_ConsoleOut.AppendText("In challenge response: " + exc.Message + "\n");
+                        richTextBox_ConsoleOut.AppendText("In challenge response: " + e.Message + "\n");
+                        return false;
                     }
                 }
+                else
+                {
+                    richTextBox_ConsoleOut.AppendText("Wrong Message Code while retrieving signed random number from the client:\n");
+                    return false;
+                }
             }
-            catch   // If an error is encountered
+            catch (Exception e)   // If an error is encountered
             {
-                throw new Exception();
+                richTextBox_ConsoleOut.AppendText("Something occurs " + e.Message + "\n");
+                return false;
             }
+            return true;
         }
 
         private void Receive(Socket s, string username) //username is send from accept thread, to be used to find files in public key repo. 
@@ -117,7 +133,18 @@ namespace Secure_Server
             /*SERVER PHASE 1 CHALLENGE-RESPONSE*/
             try
             {
-                ChallengeResponsePhase1(s, username);
+                if (!ChallengeResponsePhase1(s, username))
+                {
+                    connected = false;
+                    if (!terminating)
+                    {
+                        richTextBox_ConsoleOut.AppendText("A client has disconnected...\n");
+                    }
+                    usernames.Remove(username);
+                    userPubKeys.Remove(username);
+                    s.Close();
+                    socketList.Remove(s);
+                }
             }
             catch(Exception ex)//challenge-response failed
             {
@@ -127,6 +154,7 @@ namespace Secure_Server
                     richTextBox_ConsoleOut.AppendText(String.Format("Challenge-response failed for {0}\n",username));
                 }
                 usernames.Remove(username);
+                userPubKeys.Remove(username);
                 s.Close();
                 socketList.Remove(s);
                 connected = false;
@@ -167,6 +195,7 @@ namespace Secure_Server
                         richTextBox_ConsoleOut.AppendText("A client has disconnected\n");
                     }
                     usernames.Remove(username);
+                    userPubKeys.Remove(username);
                     s.Close();
                     socketList.Remove(s);
                     connected = false;
@@ -181,9 +210,11 @@ namespace Secure_Server
                 try
                 {
                     Socket newClient = serverSocket.Accept();
-
+                    string username = "";
                     Byte[] buffer = new Byte[64];
-                    newClient.Receive(buffer);  // Receive username
+
+                    // Receive username
+                    newClient.Receive(buffer);  
 
                     string inMessage = Encoding.Default.GetString(buffer).Trim('\0');
                     CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
@@ -236,21 +267,81 @@ namespace Secure_Server
             }
         }
 
+
+        // Helper Functions
         public void addClientPubKey (string userName)
         {
-            string clientPublicKeyPath = mainRepositoryPath + "\\" + username + "_pub.txt";
+            string clientPublicKeyPath = mainRepositoryPath + "\\" + userName + "_pub.txt";
             try
             {
                 string clientPubKey = File.ReadAllText(clientPublicKeyPath);
-                userPubKeys.Add(username, clientPubKey);
+                userPubKeys.Add(userName, clientPubKey);
             }
             catch
             {
-                richTextBox_ConsoleOut.AppendText("Error while reading " + username + " public key");
+                richTextBox_ConsoleOut.AppendText("Error while reading " + userName + " public key");
             }
-
         }
 
+        static string generateHexStringFromByteArray(byte[] input)
+        {
+            string hexString = BitConverter.ToString(input);
+            return hexString.Replace("-", "");
+        }
+
+        public static byte[] hexStringToByteArray(string hex)
+        {
+            int numberChars = hex.Length;
+            byte[] bytes = new byte[numberChars / 2];
+            for (int i = 0; i < numberChars; i += 2)
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            return bytes;
+        }
+
+        public void sendStringMessage(Socket receiver, String message)
+        {
+            // Not used anymore!
+            Byte[] buffer = Encoding.Default.GetBytes(message);
+            receiver.Send(buffer);
+        }
+
+        public string createCommunicationMessage(MessageCodes msgCode, string topic, string message)
+        {
+            CommunicationMessage msg = new CommunicationMessage
+            {
+                msgCode = msgCode,
+                topic = topic,
+                message = message
+            };
+            string msgJSON = JsonConvert.SerializeObject(msg);
+            return msgJSON;
+        }
+
+        public void sendMessage(Socket s, string m)
+        {
+            Byte[] buffer = Encoding.Default.GetBytes(m);
+            s.Send(buffer);
+        }
+
+        public void receiveMessage(Socket s, string incomingMessage)
+        {
+            // TODO: Implement the functionality
+        }
+
+        public string randomNumberGenerator(int length)
+        {
+            Byte[] bytesRandom = new Byte[length];
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(bytesRandom);
+            }
+            string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
+            richTextBox_ConsoleOut.AppendText((length*8).ToString() + "-bit Random Number:\n" + generateHexStringFromByteArray(bytesRandom) + "\n"); // For debugging purposes
+            return randomNumber;
+        }
+
+
+        /***** GUI Elements *****/
         private void button_listen_Click(object sender, EventArgs e)
         {
             int serverPort;
@@ -280,64 +371,61 @@ namespace Secure_Server
             }
         }
 
-        // Helper Functions
-        static string generateHexStringFromByteArray(byte[] input)
+        private void ServerPublicKey_Click(object sender, EventArgs e)
         {
-            string hexString = BitConverter.ToString(input);
-            return hexString.Replace("-", "");
-        }
-
-        public static byte[] hexStringToByteArray(string hex)
-        {
-            int numberChars = hex.Length;
-            byte[] bytes = new byte[numberChars / 2];
-            for (int i = 0; i < numberChars; i += 2)
-                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-            return bytes;
-        }
-
-        public void sendStringMessage(Socket receiver, String message)
-        {
-            Byte[] buffer = Encoding.Default.GetBytes(message);
-            receiver.Send(buffer);
-        }
-
-        public string createCommunicationMessage(MessageCodes msgCode, string topic, string message)
-        {
-            CommunicationMessage msg = new CommunicationMessage
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
             {
-                msgCode = msgCode,
-                topic = topic,
-                message = message
-            };
-            string msgJSON = JsonConvert.SerializeObject(msg);
-            return msgJSON;
-        }
+                string fileName = dlg.FileName;
 
-        public void sendMessage(Socket s, string m)
-        {
-            Byte[] buffer = Encoding.Default.GetBytes(m);
-            s.Send(buffer);
-        }
-
-        public void receiveMessage(Socket s, string incomingMessage)
-        {
-
-        }
-
-        public string randomNumberGenerator(int length)
-        {
-            Byte[] bytesRandom = new Byte[length];
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                rng.GetBytes(bytesRandom);
+                try
+                {
+                    serverPublicKey = File.ReadAllText(fileName);
+                    byte[] byteServerPubKey = Encoding.Default.GetBytes(serverPublicKey);
+                    string hexaServerPubKey = generateHexStringFromByteArray(byteServerPubKey);
+                    richTextBox_ConsoleOut.AppendText("Server Public Key: " + hexaServerPubKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message + "\n");
+                }
             }
-            string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
-            // Debugging purposes
-            richTextBox_ConsoleOut.AppendText("128-bit Random Number:\n" + generateHexStringFromByteArray(bytesRandom) + "\n");
-            return randomNumber;
         }
 
+        private void ServerPrivateKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+
+                try
+                {
+                    serverPrivateKey = File.ReadAllText(fileName);
+                    byte[] byteServerPrvKey = Encoding.Default.GetBytes(serverPrivateKey);
+                    string hexaServerPrvKey = generateHexStringFromByteArray(byteServerPrvKey);
+                    richTextBox_ConsoleOut.AppendText("Server Private Key: " + hexaServerPrvKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message + "\n");
+                }
+            }
+        }
+
+        private void mainRepo_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                mainRepositoryPath = fbd.SelectedPath;
+            }
+        }
+
+
+        /***** Cryptographic Helper Functions *****/
         /*    HASH    */
         // hash function: SHA-256
         static byte[] hashWithSHA256(string input)
@@ -730,57 +818,5 @@ namespace Secure_Server
             return result;
         }
 
-        private void ServerPublicKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            DialogResult result = dlg.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string fileName = dlg.FileName;
-
-                try
-                {
-                    serverPublicKey = File.ReadAllText(fileName);
-                    byte[] byteServerPubKey = Encoding.Default.GetBytes(serverPublicKey);
-                    string hexaServerPubKey = generateHexStringFromByteArray(byteServerPubKey);
-                    richTextBox_ConsoleOut.AppendText("Server Public Key: " + hexaServerPubKey + "\n");
-                }
-                catch (IOException ex)
-                {
-                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message + "\n");
-                }
-            }
-        }
-
-        private void ServerPrivateKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            DialogResult result = dlg.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string fileName = dlg.FileName;
-
-                try
-                {
-                    serverPrivateKey = File.ReadAllText(fileName);
-                    byte[] byteServerPrvKey = Encoding.Default.GetBytes(serverPrivateKey);
-                    string hexaServerPrvKey = generateHexStringFromByteArray(byteServerPrvKey);
-                    richTextBox_ConsoleOut.AppendText("Server Private Key: " + hexaServerPrvKey + "\n");
-                }
-                catch (IOException ex)
-                {
-                    richTextBox_ConsoleOut.AppendText("Error while getting client public key " + ex.Message + "\n");
-                }
-            }
-        }
-
-        private void mainRepo_Click(object sender, EventArgs e)
-        {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
-            if (fbd.ShowDialog() == DialogResult.OK)
-            {
-                mainRepositoryPath = fbd.SelectedPath;
-            }
-        }
     }
 }
