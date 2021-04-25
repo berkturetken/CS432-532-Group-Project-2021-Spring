@@ -32,18 +32,21 @@
             this.textBox_port_input = new System.Windows.Forms.TextBox();
             this.button_listen = new System.Windows.Forms.Button();
             this.richTextBox_ConsoleOut = new System.Windows.Forms.RichTextBox();
-            this.ServerPublicKey = new System.Windows.Forms.Button();
+            this.button_browse_serverPubKey = new System.Windows.Forms.Button();
             this.PublicLabel = new System.Windows.Forms.Label();
-            this.ServerPrivateKey = new System.Windows.Forms.Button();
+            this.button_browse_serverPrivKey = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.mainRepository = new System.Windows.Forms.Label();
-            this.mainRepo = new System.Windows.Forms.Button();
+            this.button_browse_mainRepo = new System.Windows.Forms.Button();
+            this.textBox_serverPub = new System.Windows.Forms.TextBox();
+            this.textBox_serverPriv = new System.Windows.Forms.TextBox();
+            this.textBox_mainRepo = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label_port
             // 
             this.label_port.AutoSize = true;
-            this.label_port.Location = new System.Drawing.Point(348, 253);
+            this.label_port.Location = new System.Drawing.Point(445, 253);
             this.label_port.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label_port.Name = "label_port";
             this.label_port.Size = new System.Drawing.Size(38, 17);
@@ -52,7 +55,7 @@
             // 
             // textBox_port_input
             // 
-            this.textBox_port_input.Location = new System.Drawing.Point(395, 250);
+            this.textBox_port_input.Location = new System.Drawing.Point(492, 250);
             this.textBox_port_input.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_port_input.Name = "textBox_port_input";
             this.textBox_port_input.Size = new System.Drawing.Size(132, 22);
@@ -60,7 +63,7 @@
             // 
             // button_listen
             // 
-            this.button_listen.Location = new System.Drawing.Point(395, 283);
+            this.button_listen.Location = new System.Drawing.Point(492, 283);
             this.button_listen.Margin = new System.Windows.Forms.Padding(4);
             this.button_listen.Name = "button_listen";
             this.button_listen.Size = new System.Drawing.Size(133, 28);
@@ -75,20 +78,20 @@
             this.richTextBox_ConsoleOut.Margin = new System.Windows.Forms.Padding(4);
             this.richTextBox_ConsoleOut.Name = "richTextBox_ConsoleOut";
             this.richTextBox_ConsoleOut.ReadOnly = true;
-            this.richTextBox_ConsoleOut.Size = new System.Drawing.Size(588, 216);
+            this.richTextBox_ConsoleOut.Size = new System.Drawing.Size(625, 216);
             this.richTextBox_ConsoleOut.TabIndex = 3;
             this.richTextBox_ConsoleOut.Text = "";
             // 
-            // ServerPublicKey
+            // button_browse_serverPubKey
             // 
-            this.ServerPublicKey.Location = new System.Drawing.Point(154, 249);
-            this.ServerPublicKey.Margin = new System.Windows.Forms.Padding(4);
-            this.ServerPublicKey.Name = "ServerPublicKey";
-            this.ServerPublicKey.Size = new System.Drawing.Size(133, 28);
-            this.ServerPublicKey.TabIndex = 4;
-            this.ServerPublicKey.Text = "Browse";
-            this.ServerPublicKey.UseVisualStyleBackColor = true;
-            this.ServerPublicKey.Click += new System.EventHandler(this.ServerPublicKey_Click);
+            this.button_browse_serverPubKey.Location = new System.Drawing.Point(291, 252);
+            this.button_browse_serverPubKey.Margin = new System.Windows.Forms.Padding(4);
+            this.button_browse_serverPubKey.Name = "button_browse_serverPubKey";
+            this.button_browse_serverPubKey.Size = new System.Drawing.Size(133, 28);
+            this.button_browse_serverPubKey.TabIndex = 4;
+            this.button_browse_serverPubKey.Text = "Browse";
+            this.button_browse_serverPubKey.UseVisualStyleBackColor = true;
+            this.button_browse_serverPubKey.Click += new System.EventHandler(this.ServerPublicKey_Click);
             // 
             // PublicLabel
             // 
@@ -100,21 +103,21 @@
             this.PublicLabel.TabIndex = 5;
             this.PublicLabel.Text = "Server Public Key:";
             // 
-            // ServerPrivateKey
+            // button_browse_serverPrivKey
             // 
-            this.ServerPrivateKey.Location = new System.Drawing.Point(154, 306);
-            this.ServerPrivateKey.Margin = new System.Windows.Forms.Padding(4);
-            this.ServerPrivateKey.Name = "ServerPrivateKey";
-            this.ServerPrivateKey.Size = new System.Drawing.Size(133, 28);
-            this.ServerPrivateKey.TabIndex = 6;
-            this.ServerPrivateKey.Text = "Browse";
-            this.ServerPrivateKey.UseVisualStyleBackColor = true;
-            this.ServerPrivateKey.Click += new System.EventHandler(this.ServerPrivateKey_Click);
+            this.button_browse_serverPrivKey.Location = new System.Drawing.Point(291, 300);
+            this.button_browse_serverPrivKey.Margin = new System.Windows.Forms.Padding(4);
+            this.button_browse_serverPrivKey.Name = "button_browse_serverPrivKey";
+            this.button_browse_serverPrivKey.Size = new System.Drawing.Size(133, 28);
+            this.button_browse_serverPrivKey.TabIndex = 6;
+            this.button_browse_serverPrivKey.Text = "Browse";
+            this.button_browse_serverPrivKey.UseVisualStyleBackColor = true;
+            this.button_browse_serverPrivKey.Click += new System.EventHandler(this.ServerPrivateKey_Click);
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(22, 306);
+            this.label1.Location = new System.Drawing.Point(22, 303);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(130, 17);
@@ -124,35 +127,62 @@
             // mainRepository
             // 
             this.mainRepository.AutoSize = true;
-            this.mainRepository.Location = new System.Drawing.Point(22, 365);
+            this.mainRepository.Location = new System.Drawing.Point(22, 353);
             this.mainRepository.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.mainRepository.Name = "mainRepository";
             this.mainRepository.Size = new System.Drawing.Size(109, 17);
             this.mainRepository.TabIndex = 8;
             this.mainRepository.Text = "Main repository:";
             // 
-            // mainRepo
+            // button_browse_mainRepo
             // 
-            this.mainRepo.Location = new System.Drawing.Point(154, 359);
-            this.mainRepo.Margin = new System.Windows.Forms.Padding(4);
-            this.mainRepo.Name = "mainRepo";
-            this.mainRepo.Size = new System.Drawing.Size(133, 28);
-            this.mainRepo.TabIndex = 9;
-            this.mainRepo.Text = "Browse";
-            this.mainRepo.UseVisualStyleBackColor = true;
-            this.mainRepo.Click += new System.EventHandler(this.mainRepo_Click);
+            this.button_browse_mainRepo.Location = new System.Drawing.Point(291, 347);
+            this.button_browse_mainRepo.Margin = new System.Windows.Forms.Padding(4);
+            this.button_browse_mainRepo.Name = "button_browse_mainRepo";
+            this.button_browse_mainRepo.Size = new System.Drawing.Size(133, 28);
+            this.button_browse_mainRepo.TabIndex = 9;
+            this.button_browse_mainRepo.Text = "Browse";
+            this.button_browse_mainRepo.UseVisualStyleBackColor = true;
+            this.button_browse_mainRepo.Click += new System.EventHandler(this.mainRepo_Click);
+            // 
+            // textBox_serverPub
+            // 
+            this.textBox_serverPub.Location = new System.Drawing.Point(151, 255);
+            this.textBox_serverPub.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox_serverPub.Name = "textBox_serverPub";
+            this.textBox_serverPub.Size = new System.Drawing.Size(132, 22);
+            this.textBox_serverPub.TabIndex = 10;
+            // 
+            // textBox_serverPriv
+            // 
+            this.textBox_serverPriv.Location = new System.Drawing.Point(151, 303);
+            this.textBox_serverPriv.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox_serverPriv.Name = "textBox_serverPriv";
+            this.textBox_serverPriv.Size = new System.Drawing.Size(132, 22);
+            this.textBox_serverPriv.TabIndex = 11;
+            // 
+            // textBox_mainRepo
+            // 
+            this.textBox_mainRepo.Location = new System.Drawing.Point(151, 353);
+            this.textBox_mainRepo.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox_mainRepo.Name = "textBox_mainRepo";
+            this.textBox_mainRepo.Size = new System.Drawing.Size(132, 22);
+            this.textBox_mainRepo.TabIndex = 12;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(653, 425);
-            this.Controls.Add(this.mainRepo);
+            this.Controls.Add(this.textBox_mainRepo);
+            this.Controls.Add(this.textBox_serverPriv);
+            this.Controls.Add(this.textBox_serverPub);
+            this.Controls.Add(this.button_browse_mainRepo);
             this.Controls.Add(this.mainRepository);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.ServerPrivateKey);
+            this.Controls.Add(this.button_browse_serverPrivKey);
             this.Controls.Add(this.PublicLabel);
-            this.Controls.Add(this.ServerPublicKey);
+            this.Controls.Add(this.button_browse_serverPubKey);
             this.Controls.Add(this.richTextBox_ConsoleOut);
             this.Controls.Add(this.button_listen);
             this.Controls.Add(this.textBox_port_input);
@@ -172,12 +202,15 @@
         private System.Windows.Forms.TextBox textBox_port_input;
         private System.Windows.Forms.Button button_listen;
         private System.Windows.Forms.RichTextBox richTextBox_ConsoleOut;
-        private System.Windows.Forms.Button ServerPublicKey;
+        private System.Windows.Forms.Button button_browse_serverPubKey;
         private System.Windows.Forms.Label PublicLabel;
-        private System.Windows.Forms.Button ServerPrivateKey;
+        private System.Windows.Forms.Button button_browse_serverPrivKey;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label mainRepository;
-        private System.Windows.Forms.Button mainRepo;
+        private System.Windows.Forms.Button button_browse_mainRepo;
+        private System.Windows.Forms.TextBox textBox_serverPub;
+        private System.Windows.Forms.TextBox textBox_serverPriv;
+        private System.Windows.Forms.TextBox textBox_mainRepo;
     }
 }
 

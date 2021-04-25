@@ -70,7 +70,7 @@ namespace Secure_Server
                     {
                         string clientPubKey = userPubKeys[username];
                         bool isVerified = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
-                        if (isVerified)
+                        if (!isVerified)
                         {
                             string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "Session Key", "Negative Acknowledgement");
                             byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
@@ -378,6 +378,8 @@ namespace Secure_Server
             if (result == DialogResult.OK)
             {
                 string fileName = dlg.FileName;
+                string onlyFileName = fileName.Substring(fileName.LastIndexOf('\\')+1);
+                textBox_serverPub.Text = onlyFileName;
 
                 try
                 {
@@ -400,6 +402,8 @@ namespace Secure_Server
             if (result == DialogResult.OK)
             {
                 string fileName = dlg.FileName;
+                string onlyFileName = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+                textBox_serverPriv.Text = onlyFileName;
 
                 try
                 {
@@ -421,6 +425,8 @@ namespace Secure_Server
             if (fbd.ShowDialog() == DialogResult.OK)
             {
                 mainRepositoryPath = fbd.SelectedPath;
+                string onlyFolderName = mainRepositoryPath.Substring(mainRepositoryPath.LastIndexOf('\\') + 1);
+                textBox_mainRepo.Text = onlyFolderName;
             }
         }
 

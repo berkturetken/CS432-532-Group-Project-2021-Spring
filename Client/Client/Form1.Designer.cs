@@ -63,7 +63,7 @@
             this.button_send.Name = "button_send";
             this.button_send.Size = new System.Drawing.Size(120, 31);
             this.button_send.TabIndex = 17;
-            this.button_send.Text = "send";
+            this.button_send.Text = "Send";
             this.button_send.UseVisualStyleBackColor = true;
             this.button_send.Click += new System.EventHandler(this.button_send_Click);
             // 
@@ -250,7 +250,7 @@
             // 
             // serverPubKey
             // 
-            this.serverPubKey.Location = new System.Drawing.Point(698, 239);
+            this.serverPubKey.Location = new System.Drawing.Point(698, 242);
             this.serverPubKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.serverPubKey.Name = "serverPubKey";
             this.serverPubKey.Size = new System.Drawing.Size(120, 31);
