@@ -50,12 +50,15 @@
             this.clientPublicKey = new System.Windows.Forms.Button();
             this.clientPrivateKey = new System.Windows.Forms.Button();
             this.label8 = new System.Windows.Forms.Label();
+            this.serverPubText = new System.Windows.Forms.TextBox();
+            this.clientPubText = new System.Windows.Forms.TextBox();
+            this.clientPrivText = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_send
             // 
-            this.button_send.Location = new System.Drawing.Point(483, 399);
+            this.button_send.Location = new System.Drawing.Point(699, 430);
             this.button_send.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button_send.Name = "button_send";
             this.button_send.Size = new System.Drawing.Size(120, 31);
@@ -71,22 +74,23 @@
             this.richTextBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.richTextBox1.Name = "richTextBox1";
             this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(682, 214);
+            this.richTextBox1.Size = new System.Drawing.Size(806, 214);
             this.richTextBox1.TabIndex = 15;
             this.richTextBox1.Text = "";
             // 
             // textBox_message
             // 
-            this.textBox_message.Location = new System.Drawing.Point(482, 373);
+            this.textBox_message.Location = new System.Drawing.Point(455, 392);
             this.textBox_message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.textBox_message.Multiline = true;
             this.textBox_message.Name = "textBox_message";
-            this.textBox_message.Size = new System.Drawing.Size(121, 22);
+            this.textBox_message.Size = new System.Drawing.Size(219, 69);
             this.textBox_message.TabIndex = 14;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(381, 378);
+            this.label3.Location = new System.Drawing.Point(326, 399);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(69, 17);
             this.label3.TabIndex = 13;
@@ -246,7 +250,7 @@
             // 
             // serverPubKey
             // 
-            this.serverPubKey.Location = new System.Drawing.Point(483, 235);
+            this.serverPubKey.Location = new System.Drawing.Point(698, 239);
             this.serverPubKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.serverPubKey.Name = "serverPubKey";
             this.serverPubKey.Size = new System.Drawing.Size(120, 31);
@@ -275,7 +279,7 @@
             // 
             // clientPublicKey
             // 
-            this.clientPublicKey.Location = new System.Drawing.Point(483, 280);
+            this.clientPublicKey.Location = new System.Drawing.Point(698, 280);
             this.clientPublicKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPublicKey.Name = "clientPublicKey";
             this.clientPublicKey.Size = new System.Drawing.Size(120, 31);
@@ -286,7 +290,7 @@
             // 
             // clientPrivateKey
             // 
-            this.clientPrivateKey.Location = new System.Drawing.Point(483, 324);
+            this.clientPrivateKey.Location = new System.Drawing.Point(698, 324);
             this.clientPrivateKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPrivateKey.Name = "clientPrivateKey";
             this.clientPrivateKey.Size = new System.Drawing.Size(120, 31);
@@ -304,11 +308,41 @@
             this.label8.TabIndex = 24;
             this.label8.Text = "Client Private Key:";
             // 
+            // serverPubText
+            // 
+            this.serverPubText.Location = new System.Drawing.Point(456, 242);
+            this.serverPubText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.serverPubText.Name = "serverPubText";
+            this.serverPubText.ReadOnly = true;
+            this.serverPubText.Size = new System.Drawing.Size(219, 22);
+            this.serverPubText.TabIndex = 25;
+            // 
+            // clientPubText
+            // 
+            this.clientPubText.Location = new System.Drawing.Point(456, 284);
+            this.clientPubText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.clientPubText.Name = "clientPubText";
+            this.clientPubText.ReadOnly = true;
+            this.clientPubText.Size = new System.Drawing.Size(219, 22);
+            this.clientPubText.TabIndex = 26;
+            // 
+            // clientPrivText
+            // 
+            this.clientPrivText.Location = new System.Drawing.Point(455, 328);
+            this.clientPrivText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.clientPrivText.Name = "clientPrivText";
+            this.clientPrivText.ReadOnly = true;
+            this.clientPrivText.Size = new System.Drawing.Size(219, 22);
+            this.clientPrivText.TabIndex = 27;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(709, 472);
+            this.ClientSize = new System.Drawing.Size(831, 472);
+            this.Controls.Add(this.clientPrivText);
+            this.Controls.Add(this.clientPubText);
+            this.Controls.Add(this.serverPubText);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.clientPrivateKey);
             this.Controls.Add(this.clientPublicKey);
@@ -354,6 +388,9 @@
         private System.Windows.Forms.Button clientPublicKey;
         private System.Windows.Forms.Button clientPrivateKey;
         private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.TextBox serverPubText;
+        private System.Windows.Forms.TextBox clientPubText;
+        private System.Windows.Forms.TextBox clientPrivText;
     }
 }
 

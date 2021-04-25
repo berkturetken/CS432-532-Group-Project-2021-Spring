@@ -51,59 +51,6 @@ namespace Client
             button_disconnect.Enabled = false;
         }
 
-        private void button_connect_Click(object sender, EventArgs e)
-        {
-            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            string IP = textBox_IP_input.Text;
-            int port;
-            name = textBox_Username.Text;
-
-            
-
-            if (Int32.TryParse(textBox_Port_input.Text, out port))
-            {
-                try
-                {
-                    serverSocket.Connect(IP, port);
-                    send_message(name,"User name",MessageCodes.Request); // send username to server and wait for uniqeness check
-                    CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
-                    if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
-                    {
-                        // Change button settings
-                        button_connect.Enabled = false;
-                        button_disconnect.Enabled = true;
-                        button_Login.Enabled = true;
-                        textBox_Password.Enabled = true;
-                        connected = true;
-                        richTextBox1.AppendText(serverResponse.message);
-                    }
-                    else // if username is already used 
-                    {
-                        richTextBox1.AppendText(serverResponse.message);
-                        serverSocket.Close();
-                        connected = false;
-                    }
-
-
-                }
-                catch
-                {
-                    //Change button settings to initial
-                    button_send.Enabled = false;
-                    textBox_message.Enabled = false;
-                    button_Login.Enabled = false;
-                    textBox_Password.Enabled = false;
-                    button_disconnect.Enabled = false;
-                    richTextBox1.AppendText("Could not connect to the server.\n");
-                }
-
-            }
-            else
-            {
-                richTextBox1.AppendText("Check the port number.\n");
-            }
-
-        }
 
         private void Receive()
         {
@@ -128,7 +75,7 @@ namespace Client
                     {
                         richTextBox1.AppendText("The server has disconnected.\n");
                     }
-
+                    connectionClosedButtons();
                     serverSocket.Close();
                     connected = false;
 
@@ -137,9 +84,7 @@ namespace Client
             }
 
         }
-
-      
-
+    
         private void Form1_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             connected = false;
@@ -148,19 +93,178 @@ namespace Client
             Environment.Exit(0);
         }
 
-        private void button_send_Click(object sender, EventArgs e)
-        {
-            String message = textBox_message.Text;
 
-            if (message != "" && message.Length < 63)
-            {
-                Byte[] buffer = new Byte[64];
-                buffer = Encoding.Default.GetBytes(message);
-                serverSocket.Send(buffer);
-            }
+
+        /***** HELPER FUNCTION *****/
+
+        private void connectionClosedButtons()
+        {
+            button_send.Enabled = false;
+            textBox_message.Enabled = false;
+            button_Login.Enabled = false;
+            textBox_Password.Enabled = false;
+            button_disconnect.Enabled = false;
+            button_connect.Enabled = true;
+            textBox_Password.Text = "";
+            UserPrivateKey = "";
+            SessionKey = "";
+        } // Button defaults when the connection is closed
+
+        // Sends any kind of message to the server
+        private void send_message(string message, string topic, MessageCodes code) 
+        {
+            CommunicationMessage msg = new CommunicationMessage();
+            msg.topic = topic;
+            msg.message = message;
+            msg.msgCode = code;
+            string jsonObject = JsonConvert.SerializeObject(msg);
+            byte[] buffer = Encoding.Default.GetBytes(jsonObject);
+            serverSocket.Send(buffer);
+        }
+
+        //Receive one-time messages and returning a message object
+        private CommunicationMessage receiveOneMessage()
+        {
+            Byte[] buffer = new Byte[128];
+            serverSocket.Receive(buffer);
+            string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
+            CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
+            return msg;
         }
 
 
+        /***** GUI ELEMENTS *****/
+
+
+
+        private void serverPubKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;     
+                serverPubText.Text = fileName.Substring(fileName.LastIndexOf('\\')+1);
+
+                try
+                {
+                    ServerKey = File.ReadAllText(fileName);
+                    byte[] byteServerKey = Encoding.Default.GetBytes(ServerKey);
+                    string hexaServerKey = generateHexStringFromByteArray(byteServerKey);
+                    richTextBox1.AppendText("Server Public Key: " + hexaServerKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting server public key " + ex.Message);
+                }
+            }
+        }
+
+        private void clientPublicKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+                clientPubText.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+
+                try
+                {
+                    UserPublicKey = File.ReadAllText(fileName);
+                    byte[] byteUserPubKey = Encoding.Default.GetBytes(UserPublicKey);
+                    string hexaUserPubKey = generateHexStringFromByteArray(byteUserPubKey);
+                    richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting client public key " + ex.Message);
+                }
+            }
+        }
+
+        private void clientPrivateKey_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+                clientPrivText.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+
+                try
+                {
+                    UserEncryptedPrivateKey = File.ReadAllText(fileName);
+                    richTextBox1.AppendText("User Encrypted Private Key: " + UserEncryptedPrivateKey + "\n");
+                }
+                catch (IOException ex)
+                {
+                    richTextBox1.AppendText("Error while getting client encrypted private key " + ex.Message);
+                }
+            }
+        }
+
+        private void button_connect_Click(object sender, EventArgs e)
+        {
+            serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            string IP = textBox_IP_input.Text;
+            int port;
+            name = textBox_Username.Text;
+
+
+
+            if (Int32.TryParse(textBox_Port_input.Text, out port))
+            {
+                try
+                {
+                    serverSocket.Connect(IP, port);
+                    send_message(name, "User name", MessageCodes.Request); // send username to server and wait for uniqeness check
+                    CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
+                    if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
+                    {
+                        // Change button settings
+                        button_connect.Enabled = false;
+                        button_disconnect.Enabled = true;
+                        button_Login.Enabled = true;
+                        textBox_Password.Enabled = true;
+                        connected = true;
+                        richTextBox1.AppendText(serverResponse.message);
+                    }
+                    else // if username is already used 
+                    {
+                        richTextBox1.AppendText(serverResponse.message);
+                        serverSocket.Close();
+                        connected = false;
+                    }
+
+
+                }
+                catch
+                {
+                    //Change button settings to initial
+                    connectionClosedButtons();
+                    richTextBox1.AppendText("Could not connect to the server.\n");
+                }
+
+            }
+            else
+            {
+                richTextBox1.AppendText("Check the port number.\n");
+            }
+
+        }
+
+        private void button_disconnect_Click(object sender, EventArgs e)
+        {
+            richTextBox1.AppendText("You disconnected\n");
+            connected = false;
+            button_connect.Enabled = true;
+            button_disconnect.Enabled = false;
+            button_Login.Enabled = false;
+            textBox_Password.Enabled = false;
+            serverSocket.Close();
+
+        }
 
         private void button_Login_Click(object sender, EventArgs e)// Login protocol 
         {
@@ -211,15 +315,17 @@ namespace Client
                                 string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
                                 send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
                                 richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
-                                
+
                                 try
                                 {
+                                    //Receive Verification and Session Key from server
                                     byte[] verificationBytes = new byte[2112];
                                     serverSocket.Receive(verificationBytes);
                                     string verificationString = Encoding.Default.GetString(verificationBytes).Trim('\0');
 
-                                    string hmacMessage = verificationString.Substring(0, verificationString.Length-1024);
-                                    string signatureHexa = verificationString.Substring(verificationString.Length-1024);
+                                    //Split the sent message into signature and message
+                                    string hmacMessage = verificationString.Substring(0, verificationString.Length - 1024);
+                                    string signatureHexa = verificationString.Substring(verificationString.Length - 1024);
                                     byte[] signatureBytes = hexStringToByteArray(signatureHexa);
                                     string signature = Encoding.Default.GetString(signatureBytes);
 
@@ -228,10 +334,11 @@ namespace Client
 
                                     MessageCodes verificationResult = hmacCommMessage.msgCode;
 
-                                    if(verificationResult == MessageCodes.SuccessfulResponse)
+                                    //If it is a positive acknowledgement
+                                    if (verificationResult == MessageCodes.SuccessfulResponse)
                                     {
                                         bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
-                                        if (isSignatureVerified)
+                                        if (isSignatureVerified) // If signature is verified
                                         {
                                             byte[] encryptedHmacBytes = hexStringToByteArray(hmacCommMessage.message);
                                             string encryptedHmac = Encoding.Default.GetString(encryptedHmacBytes);
@@ -239,7 +346,7 @@ namespace Client
                                             SessionKey = Encoding.Default.GetString(decryptedHmacBytes);
                                             richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes));
                                         }
-                                        else
+                                        else // If not verified
                                         {
                                             connectionClosedButtons();
                                             serverSocket.Close();
@@ -247,22 +354,22 @@ namespace Client
                                         }
 
                                     }
-                                    else
+                                    else // If it is a negative acknowledgement
                                     {
                                         bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
-                                        if (isSignatureVerified)
+                                        if (isSignatureVerified) // If signature is verified
                                         {
                                             richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
 
                                         }
-                                        else
+                                        else //If not verified
                                         {
                                             richTextBox1.AppendText("Server can not be verified! Connection closed\n");
                                         }
                                         connectionClosedButtons();
                                         serverSocket.Close();
                                     }
-                                    
+
                                 }
                                 catch
                                 {
@@ -299,53 +406,22 @@ namespace Client
 
         }
 
-        private void connectionClosedButtons()
+        private void button_send_Click(object sender, EventArgs e)
         {
-            button_send.Enabled = false;
-            textBox_message.Enabled = false;
-            button_Login.Enabled = false;
-            textBox_Password.Enabled = false;
-            button_disconnect.Enabled = false;
-            button_connect.Enabled = true;
-        }
+            String message = textBox_message.Text;
 
-        // Sends any kind of message to the server
-        private void send_message(string message, string topic, MessageCodes code) 
-        {
-            CommunicationMessage msg = new CommunicationMessage();
-            msg.topic = topic;
-            msg.message = message;
-            msg.msgCode = code;
-            string jsonObject = JsonConvert.SerializeObject(msg);
-            byte[] buffer = Encoding.Default.GetBytes(jsonObject);
-            serverSocket.Send(buffer);
-        }
-
-        //Receive one-time messages and returning a message object
-        private CommunicationMessage receiveOneMessage()
-        {
-            Byte[] buffer = new Byte[128];
-            serverSocket.Receive(buffer);
-            string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-            CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
-            return msg;
+            if (message != "" && message.Length < 63)
+            {
+                Byte[] buffer = new Byte[64];
+                buffer = Encoding.Default.GetBytes(message);
+                serverSocket.Send(buffer);
+            }
         }
 
 
-        private void button_disconnect_Click(object sender, EventArgs e)
-        {
-            richTextBox1.AppendText("You disconnected\n");
-            connected = false;
-            button_connect.Enabled = true;
-            button_disconnect.Enabled = false;
-            button_Login.Enabled = false;
-            textBox_Password.Enabled = false;
-            serverSocket.Close();
-
-        }
 
 
-        /* HELPER FUNCTIONS */
+        /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
 
 
         static string generateHexStringFromByteArray(byte[] input)
@@ -482,7 +558,6 @@ namespace Client
 
             return result;
         }
-
 
         // decryption with AES-256
         static byte[] decryptWithAES256(string input, byte[] key, byte[] IV)
@@ -652,70 +727,6 @@ namespace Client
         }
 
 
-        
 
-        private void serverPubKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            DialogResult result = dlg.ShowDialog();
-            if(result == DialogResult.OK)
-            {
-                string fileName = dlg.FileName;
-
-                try
-                {
-                    ServerKey = File.ReadAllText(fileName);
-                    byte[] byteServerKey = Encoding.Default.GetBytes(ServerKey);
-                    string hexaServerKey = generateHexStringFromByteArray(byteServerKey);
-                    richTextBox1.AppendText("Server Public Key: " + hexaServerKey + "\n");
-                }
-                catch(IOException ex)
-                {
-                    richTextBox1.AppendText("Error while getting server public key " + ex.Message);
-                }
-            }  
-        }
-
-        private void clientPublicKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            DialogResult result = dlg.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string fileName = dlg.FileName;
-
-                try
-                {
-                    UserPublicKey = File.ReadAllText(fileName);
-                    byte[] byteUserPubKey = Encoding.Default.GetBytes(UserPublicKey);
-                    string hexaUserPubKey = generateHexStringFromByteArray(byteUserPubKey);
-                    richTextBox1.AppendText("User Public Key: " + hexaUserPubKey + "\n");
-                }
-                catch (IOException ex)
-                {
-                    richTextBox1.AppendText("Error while getting client public key " + ex.Message);
-                }
-            }
-        }
-
-        private void clientPrivateKey_Click(object sender, EventArgs e)
-        {
-            OpenFileDialog dlg = new OpenFileDialog();
-            DialogResult result = dlg.ShowDialog();
-            if (result == DialogResult.OK)
-            {
-                string fileName = dlg.FileName;
-
-                try
-                {
-                    UserEncryptedPrivateKey = File.ReadAllText(fileName);
-                    richTextBox1.AppendText("User Encrypted Private Key: " + UserEncryptedPrivateKey + "\n");
-                }
-                catch (IOException ex)
-                {
-                    richTextBox1.AppendText("Error while getting client encrypted private key " + ex.Message);
-                }
-            }
-        }
     }
 }
