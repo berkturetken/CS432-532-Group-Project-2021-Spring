@@ -211,18 +211,62 @@ namespace Client
                                 string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
                                 send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
                                 richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
-                                /*
+                                
                                 try
                                 {
-                                    byte[] verificationBytes = new byte[128];
+                                    byte[] verificationBytes = new byte[2112];
                                     serverSocket.Receive(verificationBytes);
-                                    string verificationString = Encoding.Default.GetString(verificationBytes);
-                                    string hmacMessage = verificationString.Substring(0,)
+                                    string verificationString = Encoding.Default.GetString(verificationBytes).Trim('\0');
+
+                                    string hmacMessage = verificationString.Substring(0, 1072);
+                                    string signatureHexa = verificationString.Substring(1072);
+                                    byte[] signatureBytes = hexStringToByteArray(signatureHexa);
+                                    string signature = Encoding.Default.GetString(signatureBytes);
+
+
+                                    CommunicationMessage hmacCommMessage = JsonConvert.DeserializeObject<CommunicationMessage>(hmacMessage);
+
+                                    MessageCodes verificationResult = hmacCommMessage.msgCode;
+
+                                    if(verificationResult == MessageCodes.SuccessfulResponse)
+                                    {
+                                        bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
+                                        if (isSignatureVerified)
+                                        {
+                                            byte[] encryptedHmacBytes = hexStringToByteArray(hmacCommMessage.message);
+                                            string encryptedHmac = Encoding.Default.GetString(encryptedHmacBytes);
+                                            byte[] decryptedHmacBytes = decryptWithRSA(encryptedHmac, 4096, UserPrivateKey);
+                                            SessionKey = Encoding.Default.GetString(decryptedHmacBytes);
+                                            richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes));
+                                        }
+                                        else
+                                        {
+                                            button_send.Enabled = false;
+                                            textBox_message.Enabled = false;
+                                            button_Login.Enabled = false;
+                                            textBox_Password.Enabled = false;
+                                            button_disconnect.Enabled = false;
+                                            serverSocket.Close();
+                                            richTextBox1.AppendText("Signature can not be verified!\n");
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        //NEGATIVE ACK.
+                                    }
+                                    
                                 }
                                 catch
                                 {
-
-                                }*/
+                                    button_send.Enabled = false;
+                                    textBox_message.Enabled = false;
+                                    button_Login.Enabled = false;
+                                    textBox_Password.Enabled = false;
+                                    button_disconnect.Enabled = false;
+                                    serverSocket.Close();
+                                    richTextBox1.AppendText("Error during session key receiving!\n");
+                                }
                             }
                             catch
                             {
@@ -255,28 +299,6 @@ namespace Client
                         AES256IV = new byte[16];
                         richTextBox1.AppendText("Wrong password. Please try again.\n");
                     }
-
-
-                    // TODO: login protocol
-
-                    /*The encrypted 4096-bit RSA private key, is decrypted using the hash of the entered password 
-                     * 
-                     * (The RSA-4096 private key of each user is given in encrypted form. 
-                     * The encryption is done using AES-256 in CFB mode. For the key and IV of this encryption, 
-                     * SHA-384 hash of the password is used, first 32 bytes of the hash output, i.e. the byte array indices [0…31], 
-                     * being the key and last 16 bytes of the hash output, i.e. the byte array indices [32…47], being the IV.)
-                     * 
-                     * if the password is entered correctly, we obtain the decrypted RSA private key. 
-                     * !! should not store this decrypted private key in any file; just keep it in memory during a session.
-                     * If the password is entered wrong, the decryption operation would fail (probably by throwing an exception) 
-                     * and user understands that he/she entered the password wrong. 
-                     * (inform the user about the wrong password and ask for it again)*/
-
-                    // TODO: verify the signature comes from server
-                    /*If verified, the client will decrypt the HMAC key using his/her own private RSA key and store it in the memory*/
-
-                    /* If authentication protocol fails, the connection must be closed,
-                     * connection/authentication can be initiated again through the GUI.*/
                 }
 
             }
