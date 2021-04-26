@@ -12,13 +12,10 @@ using System.Windows.Forms;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 using System.IO;
-
 using Client.Models;
 
 namespace Client
 {
-
-
     public partial class Form1 : Form
     {
         string name;
@@ -51,26 +48,21 @@ namespace Client
             button_disconnect.Enabled = false;
         }
 
-
         private void Receive()
         {
             while (connected)
             {
-
                 try
                 {
-
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
                     serverSocket.Receive(buffer);
 
                     string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-
                     richTextBox1.AppendText(incomingMessage + "\n");
 
                 }
                 catch
                 {
-
                     if (!terminating)
                     {
                         richTextBox1.AppendText("The server has disconnected.\n");
@@ -78,11 +70,8 @@ namespace Client
                     connectionClosedButtons();
                     serverSocket.Close();
                     connected = false;
-
                 }
-
             }
-
         }
     
         private void Form1_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -94,9 +83,7 @@ namespace Client
         }
 
 
-
-        /***** HELPER FUNCTION *****/
-
+        /***** HELPER FUNCTIONS *****/
         private void connectionClosedButtons()
         {
             button_send.Enabled = false;
@@ -134,9 +121,6 @@ namespace Client
 
 
         /***** GUI ELEMENTS *****/
-
-
-
         private void serverPubKey_Click(object sender, EventArgs e)
         {
             OpenFileDialog dlg = new OpenFileDialog();
@@ -211,7 +195,16 @@ namespace Client
             int port;
             name = textBox_Username.Text;
 
-
+            if(name.IndexOf('_') != -1)
+            {
+                richTextBox1.AppendText("Username cannot contain '_' symbol!\n");
+                return;
+            }
+            else if(name.Length == 0 || name.IndexOf(' ') != -1)
+            {
+                richTextBox1.AppendText("Username cannot be empty or contain whitespaces!\n");
+                return;
+            }
 
             if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
@@ -236,8 +229,6 @@ namespace Client
                         serverSocket.Close();
                         connected = false;
                     }
-
-
                 }
                 catch
                 {
@@ -245,25 +236,19 @@ namespace Client
                     connectionClosedButtons();
                     richTextBox1.AppendText("Could not connect to the server.\n");
                 }
-
             }
             else
             {
                 richTextBox1.AppendText("Check the port number.\n");
             }
-
         }
 
         private void button_disconnect_Click(object sender, EventArgs e)
         {
             richTextBox1.AppendText("You disconnected\n");
             connected = false;
-            button_connect.Enabled = true;
-            button_disconnect.Enabled = false;
-            button_Login.Enabled = false;
-            textBox_Password.Enabled = false;
+            connectionClosedButtons();
             serverSocket.Close();
-
         }
 
         private void button_Login_Click(object sender, EventArgs e)// Login protocol 
@@ -417,13 +402,9 @@ namespace Client
                 serverSocket.Send(buffer);
             }
         }
-
-
-
+    
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
-
-
         static string generateHexStringFromByteArray(byte[] input)
         {
             string hexString = BitConverter.ToString(input);
@@ -440,7 +421,6 @@ namespace Client
         }
 
         /*    HASH    */
-
         // hash function: SHA-256
         static byte[] hashWithSHA256(string input)
         {
@@ -520,7 +500,6 @@ namespace Client
         }
 
         /*    SYMMETRIC CIPHERS     */
-
         // encryption with AES-256
         static byte[] encryptWithAES256(string input, byte[] key, byte[] IV)
         {
@@ -631,8 +610,8 @@ namespace Client
 
             return result;
         }
+       
         /*    PUBLIC KEY CRYPTOGRAPHY    */
-
         // RSA encryption with varying bit length
         static byte[] encryptWithRSA(string input, int algoLength, string xmlStringKey)
         {
@@ -725,8 +704,6 @@ namespace Client
 
             return result;
         }
-
-
 
     }
 }

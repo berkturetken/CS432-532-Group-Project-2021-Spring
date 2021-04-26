@@ -166,27 +166,11 @@ namespace Secure_Server
             {
                 try
                 {
-                    // TODO: server sends a 128-bit random number to the client to initiate the challenge-response protocol.
-
                     Byte[] buffer = new Byte[64];
                     s.Receive(buffer);
 
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf("\0"));
-
-                    // TODO: verify signature comes from "username" 
-                    /*(If the server cannot verify the signature, it sends a negative acknowledgment message(signed) 
-                     * to the client and closes the communication.)*/
-
-                    // TODO: if client is authenticated, server generates a random 256-bit value which will be used as HMAC key
-                    /*(The server encrypts this HMAC key with the RSA public key of the client. Then, the server signs this 
-                     * encrypted HMAC key together with a positive acknowledgment message using server's own private RSA key. 
-                     * After these operations, the server sends the encrypted HMAC key, the positive acknowledgment message and 
-                     * the signature to the client.)
-                     * The server should keep track of the session authentication keys for each client after a successful authentication phase*/
-
-                    /* If authentication protocol fails, the connection must be closed,
-                     * connection/authentication can be initiated again through the GUI.*/
                 }
                 catch
                 {
@@ -279,7 +263,7 @@ namespace Secure_Server
             }
             catch
             {
-                richTextBox_ConsoleOut.AppendText("Error while reading " + userName + " public key");
+                richTextBox_ConsoleOut.AppendText("Error while reading " + userName + " public key.\n");
             }
         }
 
