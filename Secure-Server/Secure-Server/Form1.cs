@@ -44,6 +44,16 @@ namespace Secure_Server
         {
             listening = false;
             terminating = true;
+            CommunicationMessage disconnectMsg = new CommunicationMessage();
+            disconnectMsg.msgCode = MessageCodes.DisconnectResponse;
+            disconnectMsg.message = "Server disconnected\n";
+            disconnectMsg.topic = "Disconnect";
+            string disconnectMsg_str = JsonConvert.SerializeObject(disconnectMsg);
+            byte[] msg = Encoding.Default.GetBytes(disconnectMsg_str);
+            foreach(Socket c in socketList)
+            {
+                c.Send(msg);
+            }
             Environment.Exit(0);
         }
 
@@ -88,7 +98,7 @@ namespace Secure_Server
                 byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
 
                 // Merge
-                string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
+                string sessionKeyAgreement = "q"+hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
 
                 // Send the Session Key Agreement to the client
                 sendMessage(client, sessionKeyAgreement);
@@ -220,8 +230,6 @@ namespace Secure_Server
                     {
                         closeConnection(s, username);
                     }
-                    // For debugging purposes:
-                    // richTextBox_ConsoleOut.AppendText("Test test test...\n");
                 }
                 catch
                 {
