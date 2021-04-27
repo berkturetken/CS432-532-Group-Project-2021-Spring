@@ -150,6 +150,7 @@
             this.textBox_serverPub.Location = new System.Drawing.Point(151, 255);
             this.textBox_serverPub.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_serverPub.Name = "textBox_serverPub";
+            this.textBox_serverPub.ReadOnly = true;
             this.textBox_serverPub.Size = new System.Drawing.Size(132, 22);
             this.textBox_serverPub.TabIndex = 10;
             // 
@@ -158,6 +159,7 @@
             this.textBox_serverPriv.Location = new System.Drawing.Point(151, 303);
             this.textBox_serverPriv.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_serverPriv.Name = "textBox_serverPriv";
+            this.textBox_serverPriv.ReadOnly = true;
             this.textBox_serverPriv.Size = new System.Drawing.Size(132, 22);
             this.textBox_serverPriv.TabIndex = 11;
             // 
@@ -166,6 +168,7 @@
             this.textBox_mainRepo.Location = new System.Drawing.Point(151, 353);
             this.textBox_mainRepo.Margin = new System.Windows.Forms.Padding(4);
             this.textBox_mainRepo.Name = "textBox_mainRepo";
+            this.textBox_mainRepo.ReadOnly = true;
             this.textBox_mainRepo.Size = new System.Drawing.Size(132, 22);
             this.textBox_mainRepo.TabIndex = 12;
             // 

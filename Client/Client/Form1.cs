@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Security.Cryptography;
 using System.IO;
 using Client.Models;
+using System.Net;
 
 namespace Client
 {
@@ -52,80 +53,87 @@ namespace Client
         {
             while (!authenticated && connected)
             {
-                Byte[] buffer = new Byte[2176];
-                serverSocket.Receive(buffer);
-
-                string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-
-                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
-
-                if (msg.msgCode == MessageCodes.DisconnectResponse)
+                try
                 {
-                    serverSocket.Close();
-                    richTextBox1.AppendText("The server has disconnected.\n");
-                    connectionClosedButtons();
-                }
-                else if(msg.msgCode == MessageCodes.Request)
-                {
-                    try
+                    Byte[] buffer = new Byte[2176];
+                    serverSocket.Receive(buffer);
+
+                    string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
+
+                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
+
+                    if (msg.msgCode == MessageCodes.DisconnectResponse)
                     {
-                        //Receive Verification and Session Key from server
-                        string verificationString = msg.message;
-                        //Split the sent message into signature and message                     
-                        string hmacMessage = verificationString.Substring(0, verificationString.Length - 1024);
-                        string signatureHexa = verificationString.Substring(verificationString.Length - 1024);
-                        byte[] signatureBytes = hexStringToByteArray(signatureHexa);
-                        string signature = Encoding.Default.GetString(signatureBytes);
-
-                        CommunicationMessage hmacCommMessage = JsonConvert.DeserializeObject<CommunicationMessage>(hmacMessage);
-                        MessageCodes verificationResult = hmacCommMessage.msgCode;
-
-                        //If it is a positive acknowledgement
-                        if (verificationResult == MessageCodes.SuccessfulResponse)
+                        serverSocket.Close();
+                        richTextBox1.AppendText("The server has disconnected.\n");
+                        connectionClosedButtons();
+                    }
+                    else if (msg.msgCode == MessageCodes.Request)
+                    {
+                        try
                         {
-                            bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
-                            if (isSignatureVerified) // If signature is verified
-                            {
-                                byte[] encryptedHmacBytes = hexStringToByteArray(hmacCommMessage.message);
-                                string encryptedHmac = Encoding.Default.GetString(encryptedHmacBytes);
-                                byte[] decryptedHmacBytes = decryptWithRSA(encryptedHmac, 4096, UserPrivateKey);
-                                SessionKey = Encoding.Default.GetString(decryptedHmacBytes);
-                                richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes) + "\n");
+                            //Receive Verification and Session Key from server
+                            string verificationString = msg.message;
+                            //Split the sent message into signature and message                     
+                            string hmacMessage = verificationString.Substring(0, verificationString.Length - 1024);
+                            string signatureHexa = verificationString.Substring(verificationString.Length - 1024);
+                            byte[] signatureBytes = hexStringToByteArray(signatureHexa);
+                            string signature = Encoding.Default.GetString(signatureBytes);
 
-                                authenticated = true;
-                                // Manage GUI elements
-                                button_Login.Enabled = false;
-                                button_send.Enabled = true;
-                                textBox_message.Enabled = true;
-                            }
-                            else // If not verified
+                            CommunicationMessage hmacCommMessage = JsonConvert.DeserializeObject<CommunicationMessage>(hmacMessage);
+                            MessageCodes verificationResult = hmacCommMessage.msgCode;
+
+                            //If it is a positive acknowledgement
+                            if (verificationResult == MessageCodes.SuccessfulResponse)
                             {
+                                bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
+                                if (isSignatureVerified) // If signature is verified
+                                {
+                                    byte[] encryptedHmacBytes = hexStringToByteArray(hmacCommMessage.message);
+                                    string encryptedHmac = Encoding.Default.GetString(encryptedHmacBytes);
+                                    byte[] decryptedHmacBytes = decryptWithRSA(encryptedHmac, 4096, UserPrivateKey);
+                                    SessionKey = Encoding.Default.GetString(decryptedHmacBytes);
+                                    richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes) + "\n");
+
+                                    authenticated = true;
+                                    // Manage GUI elements
+                                    button_Login.Enabled = false;
+                                    button_send.Enabled = true;
+                                    textBox_message.Enabled = true;
+                                }
+                                else // If not verified
+                                {
+                                    connectionClosedButtons();
+                                    serverSocket.Close();
+                                    richTextBox1.AppendText("Signature can not be verified! Connection closed\n");
+                                }
+                            }
+                            else // If it is a negative acknowledgement
+                            {
+                                bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
+                                if (isSignatureVerified) // If signature is verified
+                                {
+                                    richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
+                                }
+                                else //If not verified
+                                {
+                                    richTextBox1.AppendText("Server can not be verified! Connection closed\n");
+                                }
                                 connectionClosedButtons();
                                 serverSocket.Close();
-                                richTextBox1.AppendText("Signature can not be verified! Connection closed\n");
                             }
                         }
-                        else // If it is a negative acknowledgement
+                        catch
                         {
-                            bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
-                            if (isSignatureVerified) // If signature is verified
-                            {
-                                richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
-                            }
-                            else //If not verified
-                            {
-                                richTextBox1.AppendText("Server can not be verified! Connection closed\n");
-                            }
                             connectionClosedButtons();
                             serverSocket.Close();
+                            richTextBox1.AppendText("Error during session key receiving!\n");
                         }
                     }
-                    catch
-                    {
-                        connectionClosedButtons();
-                        serverSocket.Close();
-                        richTextBox1.AppendText("Error during session key receiving!\n");
-                    }
+                }
+                catch
+                {
+                   
                 }
             }
 
@@ -136,14 +144,12 @@ namespace Client
                     Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
                     serverSocket.Receive(buffer);
 
-                    string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-                    richTextBox1.AppendText(incomingMessage + "\n");
                 }
                 catch
                 {
                     if (!terminating)
                     {
-                        richTextBox1.AppendText("The server has disconnected.\n");
+                        richTextBox1.AppendText("Server disconnected!\n");
                     }
                     connectionClosedButtons();
                     serverSocket.Close();
@@ -288,37 +294,58 @@ namespace Client
                 return;
             }
 
+
+            //Get the local IP Address
+            string currIP = "";
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    currIP = ip.ToString();                         //Since type of "ip" is System.Net.IPAddress, there must be conversions
+            }
+
+
+
+
             if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
                 try
                 {
-                    serverSocket.Connect(IP, port);
-                    send_message(name, "User name", MessageCodes.Request); // send username to server and wait for uniqeness check
-                    CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
-                    if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
+
+                    if (IP == currIP)
                     {
-                        // Change button settings
-                        button_connect.Enabled = false;
-                        button_disconnect.Enabled = true;
-                        button_Login.Enabled = true;
-                        textBox_Password.Enabled = true;
-                        connected = true;
-                        richTextBox1.AppendText(serverResponse.message);
 
-                        CommunicationMessage randomNumberMessage = receiveOneMessage();
-                        randomNumber = randomNumberMessage.message;
-                        byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
-                        richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes) + "\n");
+                        serverSocket.Connect(IP, port);
+                        send_message(name, "User name", MessageCodes.Request); // send username to server and wait for uniqeness check
+                        CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
+                        if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
+                        {
+                            // Change button settings
+                            button_connect.Enabled = false;
+                            button_disconnect.Enabled = true;
+                            button_Login.Enabled = true;
+                            textBox_Password.Enabled = true;
+                            connected = true;
+                            richTextBox1.AppendText(serverResponse.message);
 
-                        Thread recieveThread = new Thread(Receive);
-                        recieveThread.Start();
+                            CommunicationMessage randomNumberMessage = receiveOneMessage();
+                            randomNumber = randomNumberMessage.message;
 
+
+                            Thread recieveThread = new Thread(Receive);
+                            recieveThread.Start();
+
+                        }
+                        else // if username is already used 
+                        {
+                            richTextBox1.AppendText(serverResponse.message);
+                            serverSocket.Close();
+                            connected = false;
+                        }
                     }
-                    else // if username is already used 
+                    else
                     {
-                        richTextBox1.AppendText(serverResponse.message);
-                        serverSocket.Close();
-                        connected = false;
+                        richTextBox1.AppendText("Could not connect to the server. Check IP!\n");
                     }
                 }
                 catch
@@ -339,6 +366,7 @@ namespace Client
             richTextBox1.AppendText("You disconnected.\n");
             connected = false;
             authenticated = false;
+            terminating = true;
             connectionClosedButtons();
             CommunicationMessage disconnectMsg = new CommunicationMessage();
             disconnectMsg.msgCode = MessageCodes.DisconnectResponse;
@@ -361,6 +389,8 @@ namespace Client
                 loginStart = true;
                 if (connected)
                 {
+                    byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
+                    richTextBox1.AppendText("Random Number:" + generateHexStringFromByteArray(randomNumberBytes) + "\n");
                     string pass = textBox_Password.Text;
 
                     //Password hashing and creating AES-256 Key and IV
@@ -368,16 +398,15 @@ namespace Client
                     Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
                     Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
                     string hexaDecimalAES256Key = generateHexStringFromByteArray(AES256Key);
-                    string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
-                    richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
-                    richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
-                    
+                    string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);                    
                     try
                     {
                         //Decrypt the Private Key using AES-256 
                         byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
                         UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                         string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
+                        richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
+                        richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
                         richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
                             try
                             {
