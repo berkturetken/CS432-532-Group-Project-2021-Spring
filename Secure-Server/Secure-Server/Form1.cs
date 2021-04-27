@@ -104,6 +104,7 @@ namespace Secure_Server
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
                 richTextBox_ConsoleOut.AppendText(username + " is authenticated\n");
+                printOnlineUsers();
                 return true;
             }
             catch
@@ -195,7 +196,6 @@ namespace Secure_Server
                 // If (for some reason) challenge-response protocol fails
                 if (!ChallengeResponsePhase1(s, username))
                 {
-                   
                     closeConnection(s, username);
                     connected = false;
                 }
@@ -387,6 +387,7 @@ namespace Secure_Server
             usernames.Remove(username);
             userHMACKeys.Remove(username);
             userPubKeys.Remove(username);
+            printOnlineUsers();
             richTextBox_ConsoleOut.AppendText(username + " disconnected.\n");
         }
 
@@ -394,6 +395,15 @@ namespace Secure_Server
         {
             string msg = createCommunicationMessage(MessageCodes.DisconnectResponse, "Disconnect", username + " disconnected");
             sendMessage(client, msg);
+        }
+
+        public void printOnlineUsers()
+        {
+            textBox_onlineClients.ResetText();
+            foreach(string authenticatedUser in userHMACKeys.Keys)
+            {
+                textBox_onlineClients.AppendText(authenticatedUser + Environment.NewLine);
+            }
         }
 
 
@@ -879,6 +889,5 @@ namespace Secure_Server
 
             return result;
         }
-
     }
 }

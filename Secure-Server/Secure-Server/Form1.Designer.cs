@@ -41,6 +41,8 @@
             this.textBox_serverPub = new System.Windows.Forms.TextBox();
             this.textBox_serverPriv = new System.Windows.Forms.TextBox();
             this.textBox_mainRepo = new System.Windows.Forms.TextBox();
+            this.textBox_onlineClients = new System.Windows.Forms.TextBox();
+            this.label_onlineClients = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label_port
@@ -172,11 +174,33 @@
             this.textBox_mainRepo.Size = new System.Drawing.Size(132, 22);
             this.textBox_mainRepo.TabIndex = 12;
             // 
+            // textBox_onlineClients
+            // 
+            this.textBox_onlineClients.Location = new System.Drawing.Point(448, 356);
+            this.textBox_onlineClients.Margin = new System.Windows.Forms.Padding(4);
+            this.textBox_onlineClients.Multiline = true;
+            this.textBox_onlineClients.Name = "textBox_onlineClients";
+            this.textBox_onlineClients.ReadOnly = true;
+            this.textBox_onlineClients.Size = new System.Drawing.Size(177, 110);
+            this.textBox_onlineClients.TabIndex = 13;
+            // 
+            // label_onlineClients
+            // 
+            this.label_onlineClients.AutoSize = true;
+            this.label_onlineClients.Location = new System.Drawing.Point(445, 335);
+            this.label_onlineClients.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label_onlineClients.Name = "label_onlineClients";
+            this.label_onlineClients.Size = new System.Drawing.Size(99, 17);
+            this.label_onlineClients.TabIndex = 14;
+            this.label_onlineClients.Text = "Online Clients:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(653, 425);
+            this.ClientSize = new System.Drawing.Size(648, 489);
+            this.Controls.Add(this.label_onlineClients);
+            this.Controls.Add(this.textBox_onlineClients);
             this.Controls.Add(this.textBox_mainRepo);
             this.Controls.Add(this.textBox_serverPriv);
             this.Controls.Add(this.textBox_serverPub);
@@ -214,6 +238,8 @@
         private System.Windows.Forms.TextBox textBox_serverPub;
         private System.Windows.Forms.TextBox textBox_serverPriv;
         private System.Windows.Forms.TextBox textBox_mainRepo;
+        private System.Windows.Forms.TextBox textBox_onlineClients;
+        private System.Windows.Forms.Label label_onlineClients;
     }
 }
 
