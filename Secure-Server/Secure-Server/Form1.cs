@@ -92,16 +92,18 @@ namespace Secure_Server
 
                 // Sign the message
                 byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
+                richTextBox_ConsoleOut.AppendText("Session key signature: " + generateHexStringFromByteArray(signedMessage)+"\n");
 
                 // Merge
                 string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
+                richTextBox_ConsoleOut.AppendText("Positive acknowledgement + session key + signature: " + sessionKeyAgreement + "\n");
                 string finalMessage = createCommunicationMessage(MessageCodes.Request, "Session Key", sessionKeyAgreement);
                 // Send the Session Key Agreement to the client
                 sendMessage(client, finalMessage);
 
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
-
+                richTextBox_ConsoleOut(username + " is authenticated\n");
                 return true;
             }
             catch
@@ -121,6 +123,7 @@ namespace Secure_Server
                 bool isVerified = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
                 if (!isVerified)    // Negative Acknowledgement
                 {
+                    richTextBox_ConsoleOut.AppendText("Signature is not verified!\n");
                     string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "Session Key", "Negative Acknowledgement");
                     byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
                     string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
@@ -134,6 +137,7 @@ namespace Secure_Server
                 }
                 else    // Positive Acknowledgement
                 {
+                    richTextBox_ConsoleOut.AppendText("Signature Verified!\n");
                     return sendSessionKey(client, username, clientPubKey);
                    
                 }
@@ -159,7 +163,7 @@ namespace Secure_Server
                 if (msg.msgCode == MessageCodes.Request)
                 {
                     string signedRandom = msg.message;
-
+                    richTextBox_ConsoleOut.AppendText("Signed Random Number From Client: "+ signedRandom + "\n");
                     try
                     {
                         return interpretReceivedRN(client, username, randomNumber, signedRandom);

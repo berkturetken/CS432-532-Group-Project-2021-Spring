@@ -96,6 +96,7 @@ namespace Client
                                     richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes) + "\n");
 
                                     authenticated = true;
+                                    richTextBox1.AppendText( "you are authenticated\n");
                                     // Manage GUI elements
                                     button_Login.Enabled = false;
                                     button_send.Enabled = true;
