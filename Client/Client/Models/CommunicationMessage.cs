@@ -10,7 +10,8 @@ namespace Client.Models
     {
         Request,
         SuccessfulResponse,
-        ErrorResponse
+        ErrorResponse,
+        DisconnectResponse
     }
 
     public class CommunicationMessage

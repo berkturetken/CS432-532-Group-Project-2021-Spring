@@ -246,6 +246,13 @@ namespace Client
             richTextBox1.AppendText("You disconnected.\n");
             connected = false;
             connectionClosedButtons();
+            CommunicationMessage disconnectMsg = new CommunicationMessage();
+            disconnectMsg.msgCode = MessageCodes.DisconnectResponse;
+            disconnectMsg.message = name + " disconnected\n";
+            disconnectMsg.topic = "Disconnect";
+            string disconnectMsg_str = JsonConvert.SerializeObject(disconnectMsg);
+            byte[] msg = Encoding.Default.GetBytes(disconnectMsg_str);
+            serverSocket.Send(msg);
             serverSocket.Close();
         }
 

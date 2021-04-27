@@ -10,7 +10,8 @@ namespace Secure_Server.Models
     {
         Request,
         SuccessfulResponse,
-        ErrorResponse
+        ErrorResponse,
+        DisconnectResponse
     }
     class CommunicationMessage
     {
