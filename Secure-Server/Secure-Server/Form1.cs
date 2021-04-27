@@ -103,7 +103,7 @@ namespace Secure_Server
 
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
-                richTextBox_ConsoleOut(username + " is authenticated\n");
+                richTextBox_ConsoleOut.AppendText(username + " is authenticated\n");
                 return true;
             }
             catch
