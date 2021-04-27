@@ -321,7 +321,12 @@ namespace Client
                                             string encryptedHmac = Encoding.Default.GetString(encryptedHmacBytes);
                                             byte[] decryptedHmacBytes = decryptWithRSA(encryptedHmac, 4096, UserPrivateKey);
                                             SessionKey = Encoding.Default.GetString(decryptedHmacBytes);
-                                            richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes));
+                                            richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes) + "\n");
+
+                                            // Manage GUI elements
+                                            button_Login.Enabled = false;
+                                            button_send.Enabled = true;
+                                            textBox_message.Enabled = true;
                                         }
                                         else // If not verified
                                         {

@@ -188,13 +188,13 @@ namespace Secure_Server
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf("\0"));
                     // For debugging purposes:
-                    richTextBox_ConsoleOut.AppendText("Test test test...\n");
+                    // richTextBox_ConsoleOut.AppendText("Test test test...\n");
                 }
                 catch
                 {
                     if (!terminating)
                     {
-                        richTextBox_ConsoleOut.AppendText("A client has disconnected.\n");
+                        richTextBox_ConsoleOut.AppendText("A client has disconnected!!!\n");
                     }
                     usernames.Remove(username);
                     userPubKeys.Remove(username);
