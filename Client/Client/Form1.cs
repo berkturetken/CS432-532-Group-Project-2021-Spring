@@ -56,22 +56,21 @@ namespace Client
                 serverSocket.Receive(buffer);
 
                 string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
- 
 
-                if (incomingMessage[0] != 'q')
+                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
+
+                if (msg.msgCode == MessageCodes.DisconnectResponse)
                 {
-                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
                     serverSocket.Close();
                     richTextBox1.AppendText("The server has disconnected.\n");
                     connectionClosedButtons();
                 }
-                else 
+                else if(msg.msgCode == MessageCodes.Request)
                 {
                     try
                     {
                         //Receive Verification and Session Key from server
-                        string verificationString = incomingMessage;
-                        verificationString = verificationString.Substring(1);
+                        string verificationString = msg.message;
                         //Split the sent message into signature and message                     
                         string hmacMessage = verificationString.Substring(0, verificationString.Length - 1024);
                         string signatureHexa = verificationString.Substring(verificationString.Length - 1024);

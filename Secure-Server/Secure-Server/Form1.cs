@@ -98,10 +98,10 @@ namespace Secure_Server
                 byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
 
                 // Merge
-                string sessionKeyAgreement = "q"+hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
-
+                string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
+                string finalMessage = createCommunicationMessage(MessageCodes.Request, "Session Key", sessionKeyAgreement);
                 // Send the Session Key Agreement to the client
-                sendMessage(client, sessionKeyAgreement);
+                sendMessage(client, finalMessage);
 
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
@@ -130,6 +130,7 @@ namespace Secure_Server
                     // richTextBox_ConsoleOut.AppendText("Length of Signed Negative Ack: " + hexSignedNegativeAck.Length.ToString() + "\n");
 
                     string sessionKeyProblem = negativeAckJSON + hexSignedNegativeAck;
+                    string finalMessage = createCommunicationMessage(MessageCodes.Request, "Session Key", sessionKeyProblem);
                     sendMessage(client, sessionKeyProblem);
 
                     // Close the connection
@@ -195,10 +196,7 @@ namespace Secure_Server
                 // If (for some reason) challenge-response protocol fails
                 if (!ChallengeResponsePhase1(s, username))
                 {
-                    if (!terminating)
-                    {
-                        richTextBox_ConsoleOut.AppendText("A client disconnected...\n");
-                    }
+                   
                     closeConnection(s, username);
                     connected = false;
                 }
@@ -206,10 +204,6 @@ namespace Secure_Server
             catch   // Challenge-response fails
             {
                 richTextBox_ConsoleOut.AppendText("Error during challenge-response protocol\n");
-                if (!terminating)
-                {   
-                    richTextBox_ConsoleOut.AppendText(String.Format("Challenge-response failed for {0}\n",username));
-                }
                 closeConnection(s, username);
                 connected = false;
             }
@@ -233,10 +227,6 @@ namespace Secure_Server
                 }
                 catch
                 {
-                    if (!terminating)
-                    {
-                        richTextBox_ConsoleOut.AppendText("A client has disconnected!!!\n");
-                    }
                     closeConnection(s, username);
                     connected = false;
                 }
