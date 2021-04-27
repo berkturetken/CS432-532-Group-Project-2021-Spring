@@ -32,7 +32,6 @@ namespace Client
         private byte[] AES256Key = new byte[32];
         private byte[] AES256IV = new byte[16];
 
-
         public Form1()
         {
             Control.CheckForIllegalCrossThreadCalls = false;
@@ -40,7 +39,6 @@ namespace Client
             InitializeComponent();
 
             //Initial button and textbox situations
-
             button_send.Enabled = false;
             textBox_message.Enabled = false;
             button_Login.Enabled = false;
@@ -59,7 +57,6 @@ namespace Client
 
                     string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
                     richTextBox1.AppendText(incomingMessage + "\n");
-
                 }
                 catch
                 {
@@ -195,6 +192,7 @@ namespace Client
             int port;
             name = textBox_Username.Text;
 
+            // Input checks for username
             if(name.IndexOf('_') != -1)
             {
                 richTextBox1.AppendText("Username cannot contain '_' symbol!\n");
@@ -245,7 +243,7 @@ namespace Client
 
         private void button_disconnect_Click(object sender, EventArgs e)
         {
-            richTextBox1.AppendText("You disconnected\n");
+            richTextBox1.AppendText("You disconnected.\n");
             connected = false;
             connectionClosedButtons();
             serverSocket.Close();
@@ -259,7 +257,6 @@ namespace Client
             }
             else
             {
-
                 if (connected)
                 {
                     string pass = textBox_Password.Text;
@@ -272,8 +269,7 @@ namespace Client
                     string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
                     richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
                     richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
-
-
+                    
                     try
                     {
                         //Decrypt the Private Key using AES-256 
@@ -281,8 +277,6 @@ namespace Client
                         UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                         string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
                         richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
-
-
 
                         try
                         {
@@ -314,9 +308,7 @@ namespace Client
                                     byte[] signatureBytes = hexStringToByteArray(signatureHexa);
                                     string signature = Encoding.Default.GetString(signatureBytes);
 
-
                                     CommunicationMessage hmacCommMessage = JsonConvert.DeserializeObject<CommunicationMessage>(hmacMessage);
-
                                     MessageCodes verificationResult = hmacCommMessage.msgCode;
 
                                     //If it is a positive acknowledgement
@@ -337,7 +329,6 @@ namespace Client
                                             serverSocket.Close();
                                             richTextBox1.AppendText("Signature can not be verified! Connection closed\n");
                                         }
-
                                     }
                                     else // If it is a negative acknowledgement
                                     {
@@ -345,7 +336,6 @@ namespace Client
                                         if (isSignatureVerified) // If signature is verified
                                         {
                                             richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
-
                                         }
                                         else //If not verified
                                         {
@@ -354,7 +344,6 @@ namespace Client
                                         connectionClosedButtons();
                                         serverSocket.Close();
                                     }
-
                                 }
                                 catch
                                 {
@@ -375,9 +364,7 @@ namespace Client
                             connectionClosedButtons();
                             serverSocket.Close();
                             richTextBox1.AppendText("Error during random number receiving from Server!\n");
-
                         }
-
                     }
                     catch
                     {
@@ -386,9 +373,7 @@ namespace Client
                         richTextBox1.AppendText("Wrong password. Please try again.\n");
                     }
                 }
-
             }
-
         }
 
         private void button_send_Click(object sender, EventArgs e)

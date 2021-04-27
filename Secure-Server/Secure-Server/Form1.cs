@@ -21,7 +21,6 @@ namespace Secure_Server
     {
         bool terminating = false;
         bool listening = false;
-        //bool remoteConnected = false;
         
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         List<Socket> socketList = new List<Socket>();
@@ -32,7 +31,7 @@ namespace Secure_Server
         string mainRepositoryPath = "";
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
-        Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();
+        Dictionary<string, string> userHMACKeys = new Dictionary<string, string>(); // session keys
 
         public Form1()
         {
@@ -53,75 +52,92 @@ namespace Secure_Server
             string randomNumber = randomNumberGenerator(16);
             try
             {
+                // Create a 128-bit random number and send to the client
                 string randomNumberMessage = createCommunicationMessage(MessageCodes.Request, "RN", randomNumber);
                 sendMessage(client, randomNumberMessage);
-                
-                Byte[] signedRandomNumberBuffer = new Byte[1088];
-                client.Receive(signedRandomNumberBuffer);
-                string inMessage = Encoding.Default.GetString(signedRandomNumberBuffer).Trim('\0');
-                richTextBox_ConsoleOut.AppendText(inMessage+"\n");
-                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
 
-                if (msg.msgCode == MessageCodes.Request)
+                try
                 {
-                    string signedRandom = msg.message;
-                             
-                    try
+                    // Get signed random number from the client
+                    Byte[] signedRandomNumberBuffer = new Byte[1088];
+                    client.Receive(signedRandomNumberBuffer);
+                    string inMessage = Encoding.Default.GetString(signedRandomNumberBuffer).Trim('\0');
+                    richTextBox_ConsoleOut.AppendText(inMessage + "\n");
+                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+
+                    if (msg.msgCode == MessageCodes.Request)
                     {
-                        string clientPubKey = userPubKeys[username];
-                        bool isVerified = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
-                        if (!isVerified)
+                        string signedRandom = msg.message;
+
+                        try
                         {
-                            string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "Session Key", "Negative Acknowledgement");
-                            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
-                            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
-                            richTextBox_ConsoleOut.AppendText("Length of Signed Negative Ack: " + hexSignedNegativeAck.Length.ToString() + "\n");
+                            // Verify the signed number retrieved from the client
+                            string clientPubKey = userPubKeys[username];
+                            bool isVerified = verifyWithRSA(randomNumber, 4096, clientPubKey, hexStringToByteArray(signedRandom));
+                            if (!isVerified)    // Negative Acknowledgement
+                            {
+                                string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "Session Key", "Negative Acknowledgement");
+                                byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
+                                string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
+                                // richTextBox_ConsoleOut.AppendText("Length of Signed Negative Ack: " + hexSignedNegativeAck.Length.ToString() + "\n");
 
-                            string sessionKeyProblem = negativeAckJSON + hexSignedNegativeAck;
-                            sendMessage(client, sessionKeyProblem);
+                                string sessionKeyProblem = negativeAckJSON + hexSignedNegativeAck;
+                                sendMessage(client, sessionKeyProblem);
 
-                            // Close the connection
+                                // Close the connection
+                                return false;
+                            }
+                            else    // Positive Acknowledgement
+                            {
+                                try
+                                {
+                                    // Create a HMAC Key
+                                    string hmacKey = randomNumberGenerator(32);
+
+                                    // Encrypt the HMAC Key and serialize it
+                                    byte[] encryptedHMAC = encryptWithRSA(hmacKey, 4096, clientPubKey);
+                                    string hmacMessageJSON = createCommunicationMessage(MessageCodes.SuccessfulResponse, "Session Key", generateHexStringFromByteArray(encryptedHMAC));
+
+                                    // Sign the message
+                                    byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
+
+                                    // Merge
+                                    string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
+
+                                    // Send the Session Key Agreement to the client
+                                    sendMessage(client, sessionKeyAgreement);
+
+                                    // Add to dictionary
+                                    userHMACKeys.Add(username, hmacKey);
+                                }
+                                catch
+                                {
+                                    richTextBox_ConsoleOut.AppendText("Error during session key generation or sending to the client.\n");
+                                    return false;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            richTextBox_ConsoleOut.AppendText("Error during verifying the signed random number.\n");
                             return false;
                         }
-                        else
-                        {
-                            // Positive acknowledgement
-                            string hmacKey = randomNumberGenerator(32);
-
-                            // Encrypt the HMAC Key and serialize it
-                            byte[] encryptedHMAC = encryptWithRSA(hmacKey, 4096, clientPubKey);
-                            string hmacMessageJSON = createCommunicationMessage(MessageCodes.SuccessfulResponse, "Session Key", generateHexStringFromByteArray(encryptedHMAC));
-                            richTextBox_ConsoleOut.AppendText("Length of HMAC Message: " + hmacMessageJSON.Length.ToString() + "\n");
-
-                            // Sign the message
-                            byte[] signedMessage = signWithRSA(hmacMessageJSON, 4096, serverPrivateKey);
-
-                            // Merge
-                            string sessionKeyAgreement = hmacMessageJSON + generateHexStringFromByteArray(signedMessage);
-                            richTextBox_ConsoleOut.AppendText("Length of Session Key Agreement: " + sessionKeyAgreement.Length.ToString() + "\n");
-                            
-                            // Send the Session Key Agreement to corresponding client
-                            sendMessage(client, sessionKeyAgreement);
-
-                            // Add to dictionary
-                            userHMACKeys.Add(username, hmacKey);
-                        }
                     }
-                    catch (Exception e)
+                    else
                     {
-                        richTextBox_ConsoleOut.AppendText("In challenge response: " + e.Message + "\n");
+                        richTextBox_ConsoleOut.AppendText("Wrong Message Code while retrieving signed random number from the client.\n");
                         return false;
                     }
                 }
-                else
+                catch
                 {
-                    richTextBox_ConsoleOut.AppendText("Wrong Message Code while retrieving signed random number from the client:\n");
+                    richTextBox_ConsoleOut.AppendText("Error during signed random number receiving.\n");
                     return false;
                 }
             }
-            catch (Exception e)   // If an error is encountered
+            catch
             {
-                richTextBox_ConsoleOut.AppendText("Something occurs " + e.Message + "\n");
+                richTextBox_ConsoleOut.AppendText("Error during creating random number and sending to a client.\n");
                 return false;
             }
             return true;
@@ -129,26 +145,27 @@ namespace Secure_Server
 
         private void Receive(Socket s, string username) //username is send from accept thread, to be used to find files in public key repo. 
         {
+            // Challenge-Response Phase 1
             bool connected = true;
-            /*SERVER PHASE 1 CHALLENGE-RESPONSE*/
             try
             {
+                // If (for some reason) challenge-response protocol fails
                 if (!ChallengeResponsePhase1(s, username))
                 {
-                    connected = false;
                     if (!terminating)
                     {
-                        richTextBox_ConsoleOut.AppendText("A client has disconnected...\n");
+                        richTextBox_ConsoleOut.AppendText("A client disconnected...\n");
                     }
                     usernames.Remove(username);
                     userPubKeys.Remove(username);
                     s.Close();
                     socketList.Remove(s);
+                    connected = false;
                 }
             }
-            catch(Exception ex)//challenge-response failed
+            catch   // Challenge-response fails
             {
-                richTextBox_ConsoleOut.AppendText("Challenge-Response Exception: " + ex.Message);
+                richTextBox_ConsoleOut.AppendText("Error during challenge-response protocol\n");
                 if (!terminating)
                 {   
                     richTextBox_ConsoleOut.AppendText(String.Format("Challenge-response failed for {0}\n",username));
@@ -159,9 +176,8 @@ namespace Secure_Server
                 socketList.Remove(s);
                 connected = false;
             }
-           
-
-            /*Part below is for post-authentication protocols*/
+            
+            // Implement below after exchanging the session keys
             while (connected && !terminating)
             {
                 try
@@ -171,12 +187,14 @@ namespace Secure_Server
 
                     string incomingMessage = Encoding.Default.GetString(buffer);
                     incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf("\0"));
+                    // For debugging purposes:
+                    richTextBox_ConsoleOut.AppendText("Test test test...\n");
                 }
                 catch
                 {
                     if (!terminating)
                     {
-                        richTextBox_ConsoleOut.AppendText("A client has disconnected\n");
+                        richTextBox_ConsoleOut.AppendText("A client has disconnected.\n");
                     }
                     usernames.Remove(username);
                     userPubKeys.Remove(username);
@@ -245,7 +263,7 @@ namespace Secure_Server
                     }
                     else
                     {
-                        richTextBox_ConsoleOut.AppendText("The socket stopped working \n");
+                        richTextBox_ConsoleOut.AppendText("The socket stopped working.\n");
                     }
                 }
             }
@@ -320,7 +338,7 @@ namespace Secure_Server
                 rng.GetBytes(bytesRandom);
             }
             string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
-            richTextBox_ConsoleOut.AppendText((length*8).ToString() + "-bit Random Number:\n" + generateHexStringFromByteArray(bytesRandom) + "\n"); // For debugging purposes
+            richTextBox_ConsoleOut.AppendText((length*8).ToString() + "-bit Random Number: " + generateHexStringFromByteArray(bytesRandom) + "\n"); // For debugging purposes
             return randomNumber;
         }
 
