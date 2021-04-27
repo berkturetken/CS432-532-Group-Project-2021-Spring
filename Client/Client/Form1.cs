@@ -162,7 +162,10 @@ namespace Client
         {
             connected = false;
             terminating = true;
-            serverSocket.Close();
+            if (serverSocket != null)
+            {
+                serverSocket.Close();
+            }
             Environment.Exit(0);
         }
 

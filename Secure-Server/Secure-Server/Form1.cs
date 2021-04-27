@@ -44,12 +44,8 @@ namespace Secure_Server
         {
             listening = false;
             terminating = true;
-            CommunicationMessage disconnectMsg = new CommunicationMessage();
-            disconnectMsg.msgCode = MessageCodes.DisconnectResponse;
-            disconnectMsg.message = "Server disconnected\n";
-            disconnectMsg.topic = "Disconnect";
-            string disconnectMsg_str = JsonConvert.SerializeObject(disconnectMsg);
-            byte[] msg = Encoding.Default.GetBytes(disconnectMsg_str);
+            string disconnectMessage = createCommunicationMessage(MessageCodes.DisconnectResponse, "Disconnect", "Server disconnected\n");
+            byte[] msg = Encoding.Default.GetBytes(disconnectMessage);
             foreach(Socket c in socketList)
             {
                 c.Send(msg);
@@ -237,12 +233,10 @@ namespace Secure_Server
         {
             while (listening)
             {
-
                 try
                 {
                     Socket newClient = serverSocket.Accept();
                     getUserName(newClient);
-               
                 }
                 catch
                 {
@@ -252,7 +246,6 @@ namespace Secure_Server
                     }
                     else
                     {
-                        
                         richTextBox_ConsoleOut.AppendText("The socket stopped working.\n");
                     }
                 }
@@ -261,7 +254,6 @@ namespace Secure_Server
 
 
         // Helper Functions
-
         public void getUserName(Socket newClient)
         {
             string username = "";
@@ -274,7 +266,6 @@ namespace Secure_Server
                 newClient.Receive(buffer);
                 string inMessage = Encoding.Default.GetString(buffer).Trim('\0');
 
-
                 CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
                 if (msg.msgCode == MessageCodes.Request)
                 {
@@ -283,12 +274,10 @@ namespace Secure_Server
 
                 if (usernames.Contains(username))
                 {
-
                     richTextBox_ConsoleOut.AppendText("This client already exists!\n");
                     string message = createCommunicationMessage(MessageCodes.ErrorResponse, "User name", "You are already connected!\n");
                     sendMessage(newClient, message);    //sends message to client
                     newClient.Close();  // and closes the socket
-
                 }
                 else
                 {
@@ -389,7 +378,6 @@ namespace Secure_Server
 
         public void closeConnection(Socket client, string username)
         {
-            
             client.Close();
             socketList.Remove(client);
             usernames.Remove(username);
