@@ -54,11 +54,7 @@ namespace Client
             {
                 try
                 {
-                    Byte[] buffer = new Byte[2176];
-                    serverSocket.Receive(buffer);
-
-                    string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
+                    CommunicationMessage msg = receiveMessage(2176);
                     if (msg.msgCode == MessageCodes.DisconnectResponse)
                     {
                         serverSocket.Close();
@@ -137,6 +133,7 @@ namespace Client
                 }
             }
 
+            // will change!
             while (connected && authenticated)
             {
                 try
@@ -198,10 +195,10 @@ namespace Client
             serverSocket.Send(buffer);
         }
 
-        //Receive one-time messages and returning a message object
-        private CommunicationMessage receiveOneMessage()
+        //Receive messages and returning a message object
+        private CommunicationMessage receiveMessage(int size)
         {
-            Byte[] buffer = new Byte[128];
+            Byte[] buffer = new Byte[size];
             serverSocket.Receive(buffer);
             string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
@@ -313,7 +310,7 @@ namespace Client
                     {
                         serverSocket.Connect(IP, port);
                         send_message(name, "User name", MessageCodes.Request);      // send username to server and wait for uniqeness check
-                        CommunicationMessage serverResponse = receiveOneMessage();  // Receive Uniqueness check
+                        CommunicationMessage serverResponse = receiveMessage(64);   // Receive Uniqueness check
                         if (serverResponse.msgCode != MessageCodes.ErrorResponse)   // if unique
                         {
                             // Change button settings
@@ -324,7 +321,7 @@ namespace Client
                             connected = true;
                             richTextBox1.AppendText(serverResponse.message);
 
-                            CommunicationMessage randomNumberMessage = receiveOneMessage();
+                            CommunicationMessage randomNumberMessage = receiveMessage(128);
                             randomNumber = randomNumberMessage.message;
 
                             Thread recieveThread = new Thread(Receive);
@@ -423,6 +420,7 @@ namespace Client
             }
         }
 
+        // Will change!
         private void button_send_Click(object sender, EventArgs e)
         {
             String message = textBox_message.Text;
@@ -435,6 +433,7 @@ namespace Client
             }
         }
     
+
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
         static string generateHexStringFromByteArray(byte[] input)
