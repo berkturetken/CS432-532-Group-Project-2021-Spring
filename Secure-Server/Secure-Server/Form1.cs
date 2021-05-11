@@ -131,7 +131,7 @@ namespace Secure_Server
 
                     string sessionKeyProblem = negativeAckJSON + hexSignedNegativeAck;
                     string finalMessage = createCommunicationMessage(MessageCodes.Request, "Session Key", sessionKeyProblem);
-                    sendMessage(client, sessionKeyProblem);
+                    sendMessage(client, finalMessage);
 
                     // Close the connection
                     return false;

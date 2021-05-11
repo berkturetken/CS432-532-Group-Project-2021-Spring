@@ -59,9 +59,9 @@ namespace Client
                     serverSocket.Receive(buffer);
 
                     string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-
+                    richTextBox1.AppendText("Incoming Msg: " + incomingMessage.ToString());
                     CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
-
+                    richTextBox1.AppendText("Msg: " + msg.ToString());
                     if (msg.msgCode == MessageCodes.DisconnectResponse)
                     {
                         serverSocket.Close();
@@ -134,7 +134,9 @@ namespace Client
                 }
                 catch
                 {
-                   
+                    richTextBox1.AppendText("Error while receiving message or deserializing!\n");
+                    connectionClosedButtons();
+                    serverSocket.Close();
                 }
             }
 
