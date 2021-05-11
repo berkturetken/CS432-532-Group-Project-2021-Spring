@@ -310,14 +310,10 @@ namespace Client
                     currIP = ip.ToString();                         //Since type of "ip" is System.Net.IPAddress, there must be conversions
             }
 
-
-
-
             if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
                 try
                 {
-
                     if (IP == currIP)
                     {
 

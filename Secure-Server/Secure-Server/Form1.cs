@@ -140,7 +140,6 @@ namespace Secure_Server
                 {
                     richTextBox_ConsoleOut.AppendText("Signature Verified!\n");
                     return sendSessionKey(client, username, clientPubKey);
-                   
                 }
             }
             catch
@@ -156,10 +155,7 @@ namespace Secure_Server
             try
             {
                 // Get signed random number from the client
-                Byte[] signedRandomNumberBuffer = new Byte[1088];
-                client.Receive(signedRandomNumberBuffer);
-                string inMessage = Encoding.Default.GetString(signedRandomNumberBuffer).Trim('\0');
-                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+                CommunicationMessage msg = receiveMessage(client, 1088);
 
                 if (msg.msgCode == MessageCodes.Request)
                 {
@@ -263,14 +259,7 @@ namespace Secure_Server
             string username = "";
             try
             {
-                username = "";
-                Byte[] buffer = new Byte[64];
-
-                // Receive username
-                newClient.Receive(buffer);
-                string inMessage = Encoding.Default.GetString(buffer).Trim('\0');
-
-                CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+                CommunicationMessage msg = receiveMessage(newClient, 64);
                 if (msg.msgCode == MessageCodes.Request)
                 {
                     username = msg.message;
@@ -281,7 +270,7 @@ namespace Secure_Server
                     richTextBox_ConsoleOut.AppendText("This client already exists!\n");
                     string message = createCommunicationMessage(MessageCodes.ErrorResponse, "User name", "You are already connected!\n");
                     sendMessage(newClient, message);    //sends message to client
-                    newClient.Close();  // and closes the socket
+                    newClient.Close();                  // and closes the socket
                 }
                 else
                 {
@@ -338,13 +327,6 @@ namespace Secure_Server
             return bytes;
         }
 
-        public void sendStringMessage(Socket receiver, String message)
-        {
-            // Not used anymore!
-            Byte[] buffer = Encoding.Default.GetBytes(message);
-            receiver.Send(buffer);
-        }
-
         public string createCommunicationMessage(MessageCodes msgCode, string topic, string message)
         {
             CommunicationMessage msg = new CommunicationMessage
@@ -363,9 +345,13 @@ namespace Secure_Server
             s.Send(buffer);
         }
 
-        public void receiveMessage(Socket s, string incomingMessage)
+        CommunicationMessage receiveMessage(Socket s, int size)
         {
-            // TODO: Implement the functionality
+            Byte[] incomingByteArray = new Byte[size];
+            s.Receive(incomingByteArray);
+            string inMessage = Encoding.Default.GetString(incomingByteArray).Trim('\0');
+            CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+            return msg;
         }
 
         public string randomNumberGenerator(int length)
