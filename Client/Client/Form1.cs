@@ -23,7 +23,6 @@ namespace Client
         bool terminating = false;
         bool connected = false;
         bool authenticated = false;
-        bool loginStart = false;
         Socket serverSocket;
 
         private string ServerKey = ""; 
@@ -59,9 +58,7 @@ namespace Client
                     serverSocket.Receive(buffer);
 
                     string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
-                    richTextBox1.AppendText("Incoming Msg: " + incomingMessage.ToString());
                     CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
-                    richTextBox1.AppendText("Msg: " + msg.ToString());
                     if (msg.msgCode == MessageCodes.DisconnectResponse)
                     {
                         serverSocket.Close();
@@ -106,7 +103,7 @@ namespace Client
                                 {
                                     connectionClosedButtons();
                                     serverSocket.Close();
-                                    richTextBox1.AppendText("Signature can not be verified! Connection closed\n");
+                                    richTextBox1.AppendText("Signature can not be verified! Connection closed.\n");
                                 }
                             }
                             else // If it is a negative acknowledgement
@@ -114,11 +111,11 @@ namespace Client
                                 bool isSignatureVerified = verifyWithRSA(hmacMessage, 4096, ServerKey, signatureBytes);
                                 if (isSignatureVerified) // If signature is verified
                                 {
-                                    richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed\n");
+                                    richTextBox1.AppendText("Negative Acknowledgment from the server! Connection closed.\n");
                                 }
                                 else //If not verified
                                 {
-                                    richTextBox1.AppendText("Server can not be verified! Connection closed\n");
+                                    richTextBox1.AppendText("Signature can not be verified! Connection closed.\n");
                                 }
                                 connectionClosedButtons();
                                 serverSocket.Close();
@@ -144,9 +141,8 @@ namespace Client
             {
                 try
                 {
-                    Byte[] buffer = new Byte[64]; // word\0\0\0\0...... until we have the size 64
+                    Byte[] buffer = new Byte[64];       // word\0\0\0\0...... until we have the size 64
                     serverSocket.Receive(buffer);
-
                 }
                 catch
                 {
@@ -174,11 +170,11 @@ namespace Client
 
 
         /***** HELPER FUNCTIONS *****/
+        // Button defaults when the connection is closed
         private void connectionClosedButtons()
         {
             authenticated = false;
             connected = false;
-            loginStart = false;
             button_send.Enabled = false;
             textBox_message.Enabled = false;
             button_Login.Enabled = false;
@@ -188,7 +184,7 @@ namespace Client
             textBox_Password.Text = "";
             UserPrivateKey = "";
             SessionKey = "";
-        } // Button defaults when the connection is closed
+        } 
 
         // Sends any kind of message to the server
         private void send_message(string message, string topic, MessageCodes code) 
@@ -300,7 +296,6 @@ namespace Client
                 return;
             }
 
-
             //Get the local IP Address
             string currIP = "";
             var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -316,11 +311,10 @@ namespace Client
                 {
                     if (IP == currIP)
                     {
-
                         serverSocket.Connect(IP, port);
-                        send_message(name, "User name", MessageCodes.Request); // send username to server and wait for uniqeness check
-                        CommunicationMessage serverResponse = receiveOneMessage(); // Receive Uniqueness check
-                        if (serverResponse.msgCode != MessageCodes.ErrorResponse) // if unique
+                        send_message(name, "User name", MessageCodes.Request);      // send username to server and wait for uniqeness check
+                        CommunicationMessage serverResponse = receiveOneMessage();  // Receive Uniqueness check
+                        if (serverResponse.msgCode != MessageCodes.ErrorResponse)   // if unique
                         {
                             // Change button settings
                             button_connect.Enabled = false;
@@ -333,10 +327,8 @@ namespace Client
                             CommunicationMessage randomNumberMessage = receiveOneMessage();
                             randomNumber = randomNumberMessage.message;
 
-
                             Thread recieveThread = new Thread(Receive);
                             recieveThread.Start();
-
                         }
                         else // if username is already used 
                         {
@@ -370,17 +362,13 @@ namespace Client
             authenticated = false;
             terminating = true;
             connectionClosedButtons();
-            CommunicationMessage disconnectMsg = new CommunicationMessage();
-            disconnectMsg.msgCode = MessageCodes.DisconnectResponse;
-            disconnectMsg.message = name + " disconnected\n";
-            disconnectMsg.topic = "Disconnect";
-            string disconnectMsg_str = JsonConvert.SerializeObject(disconnectMsg);
-            byte[] msg = Encoding.Default.GetBytes(disconnectMsg_str);
-            serverSocket.Send(msg);
+            string message = name + " disconnected.\n";
+            send_message(message, "Disconnect", MessageCodes.DisconnectResponse);
             serverSocket.Close();
         }
 
-        private void button_Login_Click(object sender, EventArgs e)// Login protocol 
+        // Login protocol
+        private void button_Login_Click(object sender, EventArgs e)
         {
             if (UserPublicKey == "" || UserEncryptedPrivateKey == "" || ServerKey == "")
             {
@@ -388,7 +376,6 @@ namespace Client
             }
             else
             {
-                loginStart = true;
                 if (connected)
                 {
                     byte[] randomNumberBytes = Encoding.Default.GetBytes(randomNumber);
@@ -418,7 +405,6 @@ namespace Client
                                 string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
                                 send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
                                 richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
-
                             }
                             catch
                             {
