@@ -209,9 +209,10 @@ namespace Secure_Server
             // Implement below after exchanging the session keys
             while (connected && !terminating)
             {
+
                 try
                 {
-                    CommunicationMessage commMsg = receiveMessage(s, 3072);
+                    CommunicationMessage commMsg = receiveMessage(s, 4288);
                     richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg + "\n");
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
@@ -225,7 +226,7 @@ namespace Secure_Server
                         while (!uploadMsg.lastPacket && verified)
                         {
                             verified = handleUploadRequests(uploadMsg, username, fileNumber, HMACKey, s);
-                            commMsg = receiveMessage(s, 3072);
+                            commMsg = receiveMessage(s, 4288);
                             msg = commMsg.message;
                             uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg);
                             richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");

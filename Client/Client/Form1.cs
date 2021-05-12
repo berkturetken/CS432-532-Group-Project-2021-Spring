@@ -26,7 +26,7 @@ namespace Client
         bool authenticated = false;
         Socket serverSocket;
 
-        private string ServerKey = ""; 
+        private string ServerKey = "";
         private string UserPublicKey = "";
         private string UserEncryptedPrivateKey = "";
         private string UserPrivateKey = "";
@@ -91,7 +91,7 @@ namespace Client
                                     richTextBox1.AppendText("Session key: " + generateHexStringFromByteArray(decryptedHmacBytes) + "\n");
 
                                     authenticated = true;
-                                    richTextBox1.AppendText( "You are authenticated.\n");
+                                    richTextBox1.AppendText("You are authenticated.\n");
                                     // Manage GUI elements
                                     button_Login.Enabled = false;
                                     button_send.Enabled = true;
@@ -140,7 +140,7 @@ namespace Client
             {
                 try
                 {
-                    Byte[] buffer = new Byte[64];       
+                    Byte[] buffer = new Byte[64];
                     serverSocket.Receive(buffer);
                 }
                 catch
@@ -155,7 +155,7 @@ namespace Client
                 }
             }
         }
-    
+
         private void Form1_FormClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             connected = false;
@@ -183,10 +183,10 @@ namespace Client
             textBox_Password.Text = "";
             UserPrivateKey = "";
             SessionKey = "";
-        } 
+        }
 
         // Sends any kind of message to the server
-        private void send_message(string message, string topic, MessageCodes code) 
+        private void send_message(string message, string topic, MessageCodes code)
         {
             CommunicationMessage msg = new CommunicationMessage();
             msg.topic = topic;
@@ -227,8 +227,8 @@ namespace Client
             DialogResult result = dlg.ShowDialog();
             if (result == DialogResult.OK)
             {
-                string fileName = dlg.FileName;     
-                serverPubText.Text = fileName.Substring(fileName.LastIndexOf('\\')+1);
+                string fileName = dlg.FileName;
+                serverPubText.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
 
                 try
                 {
@@ -308,12 +308,12 @@ namespace Client
             name = textBox_Username.Text;
 
             // Input checks for username
-            if(name.IndexOf('_') != -1)
+            if (name.IndexOf('_') != -1)
             {
                 richTextBox1.AppendText("Username cannot contain '_' symbol!\n");
                 return;
             }
-            else if(name.Length == 0 || name.IndexOf(' ') != -1)
+            else if (name.Length == 0 || name.IndexOf(' ') != -1)
             {
                 richTextBox1.AppendText("Username cannot be empty or contain whitespaces!\n");
                 return;
@@ -336,7 +336,7 @@ namespace Client
                     {
                         serverSocket.Connect(IP, port);
                         send_message(name, "User name", MessageCodes.Request);      // send username to server and wait for uniqeness check
-                        CommunicationMessage serverResponse = receiveMessage(64);   // Receive Uniqueness check
+                        CommunicationMessage serverResponse = receiveMessage(128);   // Receive Uniqueness check
                         if (serverResponse.msgCode != MessageCodes.ErrorResponse)   // if unique
                         {
                             // Change button settings
@@ -410,7 +410,7 @@ namespace Client
                     Array.Copy(hashedPassword, 0, AES256Key, 0, 32);
                     Array.Copy(hashedPassword, 32, AES256IV, 0, 16);
                     string hexaDecimalAES256Key = generateHexStringFromByteArray(AES256Key);
-                    string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);                    
+                    string hexaDecimalAES256IV = generateHexStringFromByteArray(AES256IV);
                     try
                     {
                         //Decrypt the Private Key using AES-256 
@@ -420,21 +420,21 @@ namespace Client
                         richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
                         richTextBox1.AppendText("AES 256 IV: " + hexaDecimalAES256IV + "\n");
                         richTextBox1.AppendText("User Private Key: " + UserPrivateKey + "\n");
-                            try
-                            {
-                                //Sign the Random Number and Send it to the server
-                                byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
-                                string strNonce = Encoding.Default.GetString(signedNonce);
-                                string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
-                                send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
-                                richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
-                            }
-                            catch
-                            {
-                                connectionClosedButtons();
-                                serverSocket.Close();
-                                richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
-                            }                                        
+                        try
+                        {
+                            //Sign the Random Number and Send it to the server
+                            byte[] signedNonce = signWithRSA(randomNumber, 4096, UserPrivateKey);
+                            string strNonce = Encoding.Default.GetString(signedNonce);
+                            string hexaDecimalSignedNonce = generateHexStringFromByteArray(signedNonce);
+                            send_message(hexaDecimalSignedNonce, "signedRN", MessageCodes.Request);
+                            richTextBox1.AppendText("Signed Nonce: " + hexaDecimalSignedNonce + "\n");
+                        }
+                        catch
+                        {
+                            connectionClosedButtons();
+                            serverSocket.Close();
+                            richTextBox1.AppendText("Error during signing the nonce and sending to the server!\n");
+                        }
                     }
                     catch
                     {
@@ -451,7 +451,7 @@ namespace Client
         {
             using (var file = File.OpenRead(uploadPath)) //opening the file
             {
-             
+
                 var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
 
                 var sendBuffer = new byte[2048];
@@ -466,32 +466,32 @@ namespace Client
                     string IV = randomNumberGenerator(16);
                     byte[] byteIV = Encoding.Default.GetBytes(IV);
                     string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
-                    
-                    byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
-                    string encryptedData = Encoding.Default.GetString(encryptedSendBuffer);
 
+                    byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
+                    string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
+                    richTextBox1.AppendText("Encrypted Data" + encryptedData + "\n");
                     UploadMessage umsg;
 
                     int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
                     int sub = i - dataToSend;
                     byte[] sum = BitConverter.GetBytes(sub);
                     bytesLeftToTransmit = sum;
-
+                    richTextBox1.AppendText("bytes left: " + sub + "\n");
                     if (sub <= 0)
                     {
                         umsg = new UploadMessage { message = encryptedData, lastPacket = true };
                     }
                     else
                     {
-                        umsg = new UploadMessage { message = encryptedData, lastPacket = false};
+                        umsg = new UploadMessage { message = encryptedData, lastPacket = false };
                     }
 
                     string jsonUpload = JsonConvert.SerializeObject(umsg);
                     byte[] byteKEY = Encoding.Default.GetBytes(SessionKey);
                     byte[] byteHMAC = applyHMACwithSHA512(jsonUpload, byteKEY);
                     string stringHMAC = generateHexStringFromByteArray(byteHMAC);
-                    
-                    send_message(jsonUpload+stringHMAC, "Upload", MessageCodes.UploadRequest);
+                    richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
+                    send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
 
                     //loop until the socket have sent everything in the buffer.
                     //var offset = 0;
@@ -505,7 +505,7 @@ namespace Client
                 }
             }
         }
-    
+
 
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
@@ -714,7 +714,7 @@ namespace Client
 
             return result;
         }
-       
+
         /*    PUBLIC KEY CRYPTOGRAPHY    */
         // RSA encryption with varying bit length
         static byte[] encryptWithRSA(string input, int algoLength, string xmlStringKey)
@@ -809,7 +809,7 @@ namespace Client
             return result;
         }
 
-        
+
 
     }
 }
