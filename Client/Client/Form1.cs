@@ -16,7 +16,6 @@ using Client.Models;
 using System.Net;
 
 
-
 namespace Client
 {
     public partial class Form1 : Form
@@ -35,6 +34,7 @@ namespace Client
         private string randomNumber = "";
         private byte[] AES256Key = new byte[32];
         private byte[] AES256IV = new byte[16];
+        private string uploadPath = "";
 
         public Form1()
         {
@@ -140,7 +140,7 @@ namespace Client
             {
                 try
                 {
-                    Byte[] buffer = new Byte[64];       // word\0\0\0\0...... until we have the size 64
+                    Byte[] buffer = new Byte[64];       
                     serverSocket.Receive(buffer);
                 }
                 catch
@@ -205,6 +205,18 @@ namespace Client
             string incomingMessage = Encoding.Default.GetString(buffer).Trim('\0');
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
             return msg;
+        }
+
+        public string randomNumberGenerator(int length)
+        {
+            Byte[] bytesRandom = new Byte[length];
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(bytesRandom);
+            }
+            string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
+            richTextBox1.AppendText((length * 8).ToString() + "-bit Random Number: " + generateHexStringFromByteArray(bytesRandom) + "\n"); // For debugging purposes
+            return randomNumber;
         }
 
 
@@ -273,6 +285,18 @@ namespace Client
                 {
                     richTextBox1.AppendText("Error while getting client encrypted private key " + ex.Message);
                 }
+            }
+        }
+
+        private void button_Upload_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            DialogResult result = dlg.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                string fileName = dlg.FileName;
+                uploadPath = fileName;
+                textBox_message.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
             }
         }
 
@@ -425,13 +449,60 @@ namespace Client
         // Will change!
         private void button_send_Click(object sender, EventArgs e)
         {
-            String message = textBox_message.Text;
-
-            if (message != "" && message.Length < 63)
+            using (var file = File.OpenRead(uploadPath)) //opening the file
             {
-                Byte[] buffer = new Byte[64];
-                buffer = Encoding.Default.GetBytes(message);
-                serverSocket.Send(buffer);
+             
+                var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
+
+                var sendBuffer = new byte[2048];
+                var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
+                while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0)
+                {
+
+                    var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
+
+                    string key = randomNumberGenerator(32);
+                    byte[] byteKey = Encoding.Default.GetBytes(key);
+                    string IV = randomNumberGenerator(16);
+                    byte[] byteIV = Encoding.Default.GetBytes(IV);
+                    string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
+                    
+                    byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
+                    string encryptedData = Encoding.Default.GetString(encryptedSendBuffer);
+
+                    UploadMessage umsg;
+
+                    int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
+                    int sub = i - dataToSend;
+                    byte[] sum = BitConverter.GetBytes(sub);
+                    bytesLeftToTransmit = sum;
+
+                    if (sub <= 0)
+                    {
+                        umsg = new UploadMessage { message = encryptedData, lastPacket = true };
+                    }
+                    else
+                    {
+                        umsg = new UploadMessage { message = encryptedData, lastPacket = false};
+                    }
+
+                    string jsonUpload = JsonConvert.SerializeObject(umsg);
+                    byte[] byteKEY = Encoding.Default.GetBytes(SessionKey);
+                    byte[] byteHMAC = applyHMACwithSHA512(jsonUpload, byteKEY);
+                    string stringHMAC = generateHexStringFromByteArray(byteHMAC);
+                    
+                    send_message(jsonUpload+stringHMAC, "Upload", MessageCodes.UploadRequest);
+
+                    //loop until the socket have sent everything in the buffer.
+                    //var offset = 0;
+
+                    //while (dataToSend > 0)
+                    //{
+                    //    var bytesSent = serverSocket.Send(sendBuffer, offset, dataToSend, SocketFlags.None);
+                    //    dataToSend -= bytesSent;
+                    //    offset += bytesSent;
+                    //}
+                }
             }
         }
     
@@ -548,7 +619,7 @@ namespace Client
             // mode -> CipherMode.*
             // RijndaelManaged Mode property doesn't support CFB and OFB modes. 
             //If you want to use one of those modes, you should use RijndaelManaged library instead of RijndaelManaged.
-            aesObject.Mode = CipherMode.CFB;
+            aesObject.Mode = CipherMode.CBC;
             // feedback size should be equal to block size
             aesObject.FeedbackSize = 128;
             // set the key
@@ -737,6 +808,8 @@ namespace Client
 
             return result;
         }
+
+        
 
     }
 }
