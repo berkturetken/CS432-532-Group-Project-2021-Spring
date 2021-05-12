@@ -212,14 +212,16 @@ namespace Secure_Server
 
                 try
                 {
-                    CommunicationMessage commMsg = receiveMessage(s, 4288);
+                    CommunicationMessage commMsg = receiveMessage(s, 4362);
                     richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg + "\n");
+                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.msgCode + "\n");
+
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
                         int fileNumber = userFileCount[username] + 1;
                         byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
                         string msg = commMsg.message;
-                        UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg);
+                        UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg); // HMAC AYIR!!
                         bool verified = true;
                         richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                         richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
@@ -288,7 +290,7 @@ namespace Secure_Server
             string username = "";
             try
             {
-                CommunicationMessage msg = receiveMessage(newClient, 64);
+                CommunicationMessage msg = receiveMessage(newClient, 128);
                 if (msg.msgCode == MessageCodes.Request)
                 {
                     username = msg.message;
