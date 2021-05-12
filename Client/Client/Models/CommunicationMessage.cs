@@ -11,7 +11,14 @@ namespace Client.Models
         Request,
         SuccessfulResponse,
         ErrorResponse,
-        DisconnectResponse
+        DisconnectResponse,
+        UploadRequest
+    }
+
+    public class UploadMessage
+    {
+        public string message;
+        public bool lastPacket;
     }
 
     public class CommunicationMessage

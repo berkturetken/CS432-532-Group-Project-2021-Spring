@@ -53,6 +53,7 @@
             this.serverPubText = new System.Windows.Forms.TextBox();
             this.clientPubText = new System.Windows.Forms.TextBox();
             this.clientPrivText = new System.Windows.Forms.TextBox();
+            this.button_Upload = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -80,11 +81,12 @@
             // 
             // textBox_message
             // 
-            this.textBox_message.Location = new System.Drawing.Point(455, 392);
+            this.textBox_message.Location = new System.Drawing.Point(456, 393);
             this.textBox_message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_message.Multiline = true;
             this.textBox_message.Name = "textBox_message";
-            this.textBox_message.Size = new System.Drawing.Size(219, 69);
+            this.textBox_message.ReadOnly = true;
+            this.textBox_message.Size = new System.Drawing.Size(219, 24);
             this.textBox_message.TabIndex = 14;
             // 
             // label3
@@ -335,11 +337,22 @@
             this.clientPrivText.Size = new System.Drawing.Size(219, 22);
             this.clientPrivText.TabIndex = 27;
             // 
+            // button_Upload
+            // 
+            this.button_Upload.Location = new System.Drawing.Point(699, 392);
+            this.button_Upload.Name = "button_Upload";
+            this.button_Upload.Size = new System.Drawing.Size(120, 24);
+            this.button_Upload.TabIndex = 28;
+            this.button_Upload.Text = "Browse";
+            this.button_Upload.UseVisualStyleBackColor = true;
+            this.button_Upload.Click += new System.EventHandler(this.button_Upload_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(831, 472);
+            this.Controls.Add(this.button_Upload);
             this.Controls.Add(this.clientPrivText);
             this.Controls.Add(this.clientPubText);
             this.Controls.Add(this.serverPubText);
@@ -391,6 +404,7 @@
         private System.Windows.Forms.TextBox serverPubText;
         private System.Windows.Forms.TextBox clientPubText;
         private System.Windows.Forms.TextBox clientPrivText;
+        private System.Windows.Forms.Button button_Upload;
     }
 }
 
