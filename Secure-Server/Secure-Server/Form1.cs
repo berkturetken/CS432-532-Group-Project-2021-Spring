@@ -29,9 +29,11 @@ namespace Secure_Server
         string serverPublicKey = "";
         string serverPrivateKey = "";
         string mainRepositoryPath = "";
+        string folderPath = "";
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
         Dictionary<string, string> userHMACKeys = new Dictionary<string, string>(); // session keys
+        Dictionary<string, int> userFileCount = new Dictionary<string, int>();
 
         public Form1()
         {
@@ -103,6 +105,7 @@ namespace Secure_Server
 
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
+                userFileCount.Add(username, -1);
                 richTextBox_ConsoleOut.AppendText(username + " is authenticated\n");
                 printOnlineUsers();
                 return true;
@@ -208,18 +211,43 @@ namespace Secure_Server
             {
                 try
                 {
-                    Byte[] buffer = new Byte[256];
-                    s.Receive(buffer);
-
-                    string incomingMessage = Encoding.Default.GetString(buffer);
-                    incomingMessage = incomingMessage.Substring(0, incomingMessage.IndexOf("\0"));
-
-                    CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(incomingMessage);
-                    if(msg.msgCode == MessageCodes.DisconnectResponse)
+                    CommunicationMessage commMsg = receiveMessage(s, 3072);
+                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg + "\n");
+                    if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
-                        connected = false;
-                        closeConnection(s, username);
+                        int fileNumber = userFileCount[username] + 1;
+                        byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
+                        string msg = commMsg.message;
+                        UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg);
+                        bool verified = true;
+                        richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
+                        richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
+                        while (!uploadMsg.lastPacket && verified)
+                        {
+                            verified = handleUploadRequests(uploadMsg, username, fileNumber, HMACKey, s);
+                            commMsg = receiveMessage(s, 3072);
+                            msg = commMsg.message;
+                            uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg);
+                            richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
+                            richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
+                        }
+
+                        if (verified)
+                        {                
+                            if (handleUploadRequests(uploadMsg, username, fileNumber, HMACKey, s))
+                            {
+                                richTextBox_ConsoleOut.AppendText("I am the last packet");
+                                string fileStream = folderPath + "\\" + username + "_" + fileNumber;
+                                string fileNameMsg = createCommunicationMessage(MessageCodes.SuccessfulResponse, "File Name", fileStream);
+                                string fileSignature = generateHexStringFromByteArray(applyHMACwithSHA512(fileNameMsg, HMACKey));
+                                byte[] fileNameBuffer = Encoding.Default.GetBytes(fileNameMsg + fileSignature);
+                                s.Send(fileNameBuffer);
+                            }
+                        }
+
                     }
+
+                    
                 }
                 catch
                 {
@@ -392,6 +420,42 @@ namespace Secure_Server
             }
         }
 
+        public bool verifyHmac(string signature, string clientName, string message)
+        {
+            string sessionKey = userHMACKeys[clientName];
+            byte[] key_bytes = Encoding.Default.GetBytes(sessionKey);
+            byte[] hmac_message = applyHMACwithSHA512(message, key_bytes);
+
+            string hmac = generateHexStringFromByteArray(hmac_message);
+
+            if (hmac == signature)
+                return true;
+            return false;
+            
+        }
+
+        public bool handleUploadRequests(UploadMessage uploadMsg, string username, int fileNumber, byte[] HMACKey, Socket s)
+        {
+            string encryptedData = uploadMsg.message.Substring(0, uploadMsg.message.Length - 1024);
+            string signatureHexa = uploadMsg.message.Substring(uploadMsg.message.Length - 1024);
+            if (verifyHmac(signatureHexa, username, encryptedData))
+            {
+                string fileStream = folderPath +"\\"+ username + "_" + fileNumber;
+                FileStream target_file = File.Open(fileStream, FileMode.Append);
+                BinaryWriter bWrite = new BinaryWriter(target_file);
+                bWrite.Write(Encoding.Default.GetBytes(encryptedData), 0, 2048);
+                return true;
+            }
+            else
+            {
+                string negativeAck = createCommunicationMessage(MessageCodes.ErrorResponse, "Signature Error", "Signature can't be verified during Upload");
+                byte[] hmacBytes = applyHMACwithSHA512(negativeAck, HMACKey);
+                string finalMsg = negativeAck + generateHexStringFromByteArray(hmacBytes);
+                sendMessage(s, finalMsg);
+                return false;
+            }
+        }
+
 
         /***** GUI Elements *****/
         private void button_listen_Click(object sender, EventArgs e)
@@ -479,6 +543,17 @@ namespace Secure_Server
                 mainRepositoryPath = fbd.SelectedPath;
                 string onlyFolderName = mainRepositoryPath.Substring(mainRepositoryPath.LastIndexOf('\\') + 1);
                 textBox_mainRepo.Text = onlyFolderName;
+            }
+        }
+
+        private void folderSelectBtn_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                folderPath = fbd.SelectedPath;
+                string onlyFolderName = folderPath.Substring(folderPath.LastIndexOf('\\') + 1);
+                folderBox_text.Text = onlyFolderName;
             }
         }
 
@@ -875,5 +950,7 @@ namespace Secure_Server
 
             return result;
         }
+
+   
     }
 }

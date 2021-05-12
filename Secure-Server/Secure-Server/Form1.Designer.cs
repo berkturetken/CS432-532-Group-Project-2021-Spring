@@ -43,6 +43,9 @@
             this.textBox_mainRepo = new System.Windows.Forms.TextBox();
             this.textBox_onlineClients = new System.Windows.Forms.TextBox();
             this.label_onlineClients = new System.Windows.Forms.Label();
+            this.folderBox_text = new System.Windows.Forms.TextBox();
+            this.folderSelectBtn = new System.Windows.Forms.Button();
+            this.label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // label_port
@@ -194,11 +197,44 @@
             this.label_onlineClients.TabIndex = 14;
             this.label_onlineClients.Text = "Online Clients:";
             // 
+            // folderBox_text
+            // 
+            this.folderBox_text.Location = new System.Drawing.Point(151, 444);
+            this.folderBox_text.Margin = new System.Windows.Forms.Padding(4);
+            this.folderBox_text.Name = "folderBox_text";
+            this.folderBox_text.ReadOnly = true;
+            this.folderBox_text.Size = new System.Drawing.Size(132, 22);
+            this.folderBox_text.TabIndex = 15;
+            // 
+            // folderSelectBtn
+            // 
+            this.folderSelectBtn.Location = new System.Drawing.Point(291, 441);
+            this.folderSelectBtn.Margin = new System.Windows.Forms.Padding(4);
+            this.folderSelectBtn.Name = "folderSelectBtn";
+            this.folderSelectBtn.Size = new System.Drawing.Size(133, 28);
+            this.folderSelectBtn.TabIndex = 16;
+            this.folderSelectBtn.Text = "Browse";
+            this.folderSelectBtn.UseVisualStyleBackColor = true;
+            this.folderSelectBtn.Click += new System.EventHandler(this.folderSelectBtn_Click);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(91, 447);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(52, 17);
+            this.label2.TabIndex = 17;
+            this.label2.Text = "Folder:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(648, 489);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.folderSelectBtn);
+            this.Controls.Add(this.folderBox_text);
             this.Controls.Add(this.label_onlineClients);
             this.Controls.Add(this.textBox_onlineClients);
             this.Controls.Add(this.textBox_mainRepo);
@@ -240,6 +276,9 @@
         private System.Windows.Forms.TextBox textBox_mainRepo;
         private System.Windows.Forms.TextBox textBox_onlineClients;
         private System.Windows.Forms.Label label_onlineClients;
+        private System.Windows.Forms.TextBox folderBox_text;
+        private System.Windows.Forms.Button folderSelectBtn;
+        private System.Windows.Forms.Label label2;
     }
 }
 

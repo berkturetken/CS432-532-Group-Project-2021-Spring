@@ -11,8 +11,16 @@ namespace Secure_Server.Models
         Request,
         SuccessfulResponse,
         ErrorResponse,
-        DisconnectResponse
+        DisconnectResponse,
+        UploadRequest
     }
+
+    public class UploadMessage
+    {
+        public string message;
+        public bool lastPacket;
+    }
+
     class CommunicationMessage
     {
         public MessageCodes msgCode;
