@@ -213,37 +213,53 @@ namespace Secure_Server
                 try
                 {
                     CommunicationMessage commMsg = receiveMessage(s, 4362);
-                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg + "\n");
+                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.ToString() + "\n");
                     richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.msgCode + "\n");
 
+                    //Upload Request came
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
+                        //Get the file number to give and hmac to use
                         int fileNumber = userFileCount[username] + 1;
                         byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
+
+                        //msg part of the communication message is uploadmessage + signature
                         string msg = commMsg.message;
-                        UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg); // HMAC AYIR!!
+
+                        //Split the message into upload message and signature
+                        string encryptedData = msg.Substring(0, msg.Length - 128);
+                        richTextBox_ConsoleOut.AppendText("Encrypted Data " + encryptedData + "\n");
+                        string signatureHexa = msg.Substring(msg.Length - 128);
+                        richTextBox_ConsoleOut.AppendText("Signature " + signatureHexa + "\n");
+
+                        UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(encryptedData);
                         bool verified = true;
                         richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                         richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
+
+                        //While this is not the last packet and verified
                         while (!uploadMsg.lastPacket && verified)
                         {
-                            verified = handleUploadRequests(uploadMsg, username, fileNumber, HMACKey, s);
-                            commMsg = receiveMessage(s, 4288);
+                            verified = handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s); //Write to the file and handle verification
+                            commMsg = receiveMessage(s, 4362); // Continue receiving
                             msg = commMsg.message;
-                            uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(msg);
+                            encryptedData = msg.Substring(0, msg.Length - 1024);
+                            signatureHexa = msg.Substring(msg.Length - 1024);
+                            uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(encryptedData);
                             richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                             richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
                         }
 
-                        if (verified)
+                        if (verified) // If everything is verified and we are in the last packet
                         {                
-                            if (handleUploadRequests(uploadMsg, username, fileNumber, HMACKey, s))
+                            if (handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s))
                             {
                                 richTextBox_ConsoleOut.AppendText("I am the last packet");
                                 string fileStream = folderPath + "\\" + username + "_" + fileNumber;
                                 string fileNameMsg = createCommunicationMessage(MessageCodes.SuccessfulResponse, "File Name", fileStream);
                                 string fileSignature = generateHexStringFromByteArray(applyHMACwithSHA512(fileNameMsg, HMACKey));
                                 byte[] fileNameBuffer = Encoding.Default.GetBytes(fileNameMsg + fileSignature);
+                                userFileCount[username]++;
                                 s.Send(fileNameBuffer);
                             }
                         }
@@ -437,16 +453,20 @@ namespace Secure_Server
             
         }
 
-        public bool handleUploadRequests(UploadMessage uploadMsg, string username, int fileNumber, byte[] HMACKey, Socket s)
+        public bool handleUploadRequests(string signatureHexa,string encryptedData, string username, int fileNumber, byte[] HMACKey, Socket s)
         {
-            string encryptedData = uploadMsg.message.Substring(0, uploadMsg.message.Length - 1024);
-            string signatureHexa = uploadMsg.message.Substring(uploadMsg.message.Length - 1024);
+
             if (verifyHmac(signatureHexa, username, encryptedData))
             {
+                richTextBox_ConsoleOut.AppendText("Signature Verified!\n");
+                richTextBox_ConsoleOut.AppendText("Encrypted Data size " + Encoding.Default.GetBytes(encryptedData).Length +"\n");
                 string fileStream = folderPath +"\\"+ username + "_" + fileNumber;
                 FileStream target_file = File.Open(fileStream, FileMode.Append);
                 BinaryWriter bWrite = new BinaryWriter(target_file);
                 bWrite.Write(Encoding.Default.GetBytes(encryptedData), 0, 2048);
+                //I tried to read but we can't read the file!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //string deneme = File.ReadAllText(fileStream);
+                //richTextBox_ConsoleOut.AppendText("Deneme okuması: " + deneme + "\n");
                 return true;
             }
             else
