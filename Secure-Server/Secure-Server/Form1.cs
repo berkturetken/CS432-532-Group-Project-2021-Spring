@@ -213,12 +213,12 @@ namespace Secure_Server
                 try
                 {
                     CommunicationMessage commMsg = receiveMessage(s, 4352);
-                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.ToString() + "\n");
-                    richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.msgCode + "\n");
-
+                    
                     //Upload Request came
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
+                        int count = 1;
+                        richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() +" from "+username+ "\n");
                         //Get the file number to give and hmac to use
                         int fileNumber = userFileCount[username] + 1;
                         byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
@@ -228,7 +228,6 @@ namespace Secure_Server
 
                         //Split the message into upload message and signature
                         string encryptedData = msg.Substring(0, msg.Length - 128);
-                        richTextBox_ConsoleOut.AppendText("Encrypted Data " + encryptedData + "\n");
                         string signatureHexa = msg.Substring(msg.Length - 128);
                         richTextBox_ConsoleOut.AppendText("Signature " + signatureHexa + "\n");
 
@@ -242,6 +241,8 @@ namespace Secure_Server
                         {
                             verified = handleUploadRequests(signatureHexa, encryptedData, uploadMsg.message, username, fileNumber, HMACKey, s); //Write to the file and handle verification
                             commMsg = receiveMessage(s, 4352); // Continue receiving
+                            count++;
+                            richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() + " from " + username + "\n");
                             msg = commMsg.message;
                             encryptedData = msg.Substring(0, msg.Length - 128);
                             signatureHexa = msg.Substring(msg.Length - 128);

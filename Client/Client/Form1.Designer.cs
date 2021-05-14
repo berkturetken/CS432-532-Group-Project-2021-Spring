@@ -54,12 +54,19 @@
             this.clientPubText = new System.Windows.Forms.TextBox();
             this.clientPrivText = new System.Windows.Forms.TextBox();
             this.button_Upload = new System.Windows.Forms.Button();
+            this.label9 = new System.Windows.Forms.Label();
+            this.keyLocation_text = new System.Windows.Forms.TextBox();
+            this.browseKeylocation = new System.Windows.Forms.Button();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel1.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_send
             // 
-            this.button_send.Location = new System.Drawing.Point(699, 430);
+            this.button_send.Location = new System.Drawing.Point(65, 597);
             this.button_send.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.button_send.Name = "button_send";
             this.button_send.Size = new System.Drawing.Size(120, 31);
@@ -75,13 +82,13 @@
             this.richTextBox1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.richTextBox1.Name = "richTextBox1";
             this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(806, 214);
+            this.richTextBox1.Size = new System.Drawing.Size(807, 205);
             this.richTextBox1.TabIndex = 15;
             this.richTextBox1.Text = "";
             // 
             // textBox_message
             // 
-            this.textBox_message.Location = new System.Drawing.Point(456, 393);
+            this.textBox_message.Location = new System.Drawing.Point(65, 552);
             this.textBox_message.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.textBox_message.Multiline = true;
             this.textBox_message.Name = "textBox_message";
@@ -92,11 +99,11 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(326, 399);
+            this.label3.Location = new System.Drawing.Point(17, 552);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(69, 17);
+            this.label3.Size = new System.Drawing.Size(34, 17);
             this.label3.TabIndex = 13;
-            this.label3.Text = "Message:";
+            this.label3.Text = "File:";
             // 
             // textBox_Username
             // 
@@ -252,7 +259,7 @@
             // 
             // serverPubKey
             // 
-            this.serverPubKey.Location = new System.Drawing.Point(698, 242);
+            this.serverPubKey.Location = new System.Drawing.Point(700, 252);
             this.serverPubKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.serverPubKey.Name = "serverPubKey";
             this.serverPubKey.Size = new System.Drawing.Size(120, 31);
@@ -264,7 +271,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(326, 242);
+            this.label6.Location = new System.Drawing.Point(328, 252);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(124, 17);
             this.label6.TabIndex = 20;
@@ -273,7 +280,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(326, 287);
+            this.label7.Location = new System.Drawing.Point(328, 297);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(117, 17);
             this.label7.TabIndex = 21;
@@ -281,7 +288,7 @@
             // 
             // clientPublicKey
             // 
-            this.clientPublicKey.Location = new System.Drawing.Point(698, 280);
+            this.clientPublicKey.Location = new System.Drawing.Point(700, 290);
             this.clientPublicKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPublicKey.Name = "clientPublicKey";
             this.clientPublicKey.Size = new System.Drawing.Size(120, 31);
@@ -292,7 +299,7 @@
             // 
             // clientPrivateKey
             // 
-            this.clientPrivateKey.Location = new System.Drawing.Point(698, 324);
+            this.clientPrivateKey.Location = new System.Drawing.Point(700, 334);
             this.clientPrivateKey.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPrivateKey.Name = "clientPrivateKey";
             this.clientPrivateKey.Size = new System.Drawing.Size(120, 31);
@@ -304,7 +311,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(326, 331);
+            this.label8.Location = new System.Drawing.Point(328, 341);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(123, 17);
             this.label8.TabIndex = 24;
@@ -312,7 +319,7 @@
             // 
             // serverPubText
             // 
-            this.serverPubText.Location = new System.Drawing.Point(456, 242);
+            this.serverPubText.Location = new System.Drawing.Point(458, 252);
             this.serverPubText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.serverPubText.Name = "serverPubText";
             this.serverPubText.ReadOnly = true;
@@ -321,7 +328,7 @@
             // 
             // clientPubText
             // 
-            this.clientPubText.Location = new System.Drawing.Point(456, 284);
+            this.clientPubText.Location = new System.Drawing.Point(458, 294);
             this.clientPubText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPubText.Name = "clientPubText";
             this.clientPubText.ReadOnly = true;
@@ -330,7 +337,7 @@
             // 
             // clientPrivText
             // 
-            this.clientPrivText.Location = new System.Drawing.Point(455, 328);
+            this.clientPrivText.Location = new System.Drawing.Point(457, 338);
             this.clientPrivText.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.clientPrivText.Name = "clientPrivText";
             this.clientPrivText.ReadOnly = true;
@@ -339,19 +346,79 @@
             // 
             // button_Upload
             // 
-            this.button_Upload.Location = new System.Drawing.Point(699, 392);
+            this.button_Upload.Location = new System.Drawing.Point(300, 543);
             this.button_Upload.Name = "button_Upload";
-            this.button_Upload.Size = new System.Drawing.Size(120, 24);
+            this.button_Upload.Size = new System.Drawing.Size(120, 34);
             this.button_Upload.TabIndex = 28;
             this.button_Upload.Text = "Browse";
             this.button_Upload.UseVisualStyleBackColor = true;
             this.button_Upload.Click += new System.EventHandler(this.button_Upload_Click);
             // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(8, 163);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(94, 17);
+            this.label9.TabIndex = 29;
+            this.label9.Text = "Key Location:";
+            // 
+            // keyLocation_text
+            // 
+            this.keyLocation_text.Location = new System.Drawing.Point(138, 160);
+            this.keyLocation_text.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.keyLocation_text.Name = "keyLocation_text";
+            this.keyLocation_text.ReadOnly = true;
+            this.keyLocation_text.Size = new System.Drawing.Size(219, 22);
+            this.keyLocation_text.TabIndex = 30;
+            // 
+            // browseKeylocation
+            // 
+            this.browseKeylocation.Location = new System.Drawing.Point(379, 160);
+            this.browseKeylocation.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
+            this.browseKeylocation.Name = "browseKeylocation";
+            this.browseKeylocation.Size = new System.Drawing.Size(120, 31);
+            this.browseKeylocation.TabIndex = 31;
+            this.browseKeylocation.Text = "Browse";
+            this.browseKeylocation.UseVisualStyleBackColor = true;
+            this.browseKeylocation.Click += new System.EventHandler(this.browseKeylocation_Click);
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.browseKeylocation);
+            this.groupBox1.Controls.Add(this.label9);
+            this.groupBox1.Controls.Add(this.keyLocation_text);
+            this.groupBox1.Location = new System.Drawing.Point(320, 221);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(519, 236);
+            this.groupBox1.TabIndex = 32;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "File Selection";
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Location = new System.Drawing.Point(12, 477);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(421, 178);
+            this.groupBox2.TabIndex = 33;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Upload File";
+            // 
+            // groupBox3
+            // 
+            this.groupBox3.Location = new System.Drawing.Point(439, 477);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(400, 178);
+            this.groupBox3.TabIndex = 34;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Request File";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(831, 472);
+            this.ClientSize = new System.Drawing.Size(851, 667);
+            this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.button_Upload);
             this.Controls.Add(this.clientPrivText);
             this.Controls.Add(this.clientPubText);
@@ -367,11 +434,15 @@
             this.Controls.Add(this.richTextBox1);
             this.Controls.Add(this.textBox_message);
             this.Controls.Add(this.label3);
+            this.Controls.Add(this.groupBox1);
+            this.Controls.Add(this.groupBox2);
             this.Margin = new System.Windows.Forms.Padding(4);
             this.Name = "Form1";
             this.Text = "Form1";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -405,6 +476,12 @@
         private System.Windows.Forms.TextBox clientPubText;
         private System.Windows.Forms.TextBox clientPrivText;
         private System.Windows.Forms.Button button_Upload;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.TextBox keyLocation_text;
+        private System.Windows.Forms.Button browseKeylocation;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.GroupBox groupBox3;
     }
 }
 

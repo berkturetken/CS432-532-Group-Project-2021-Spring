@@ -36,6 +36,10 @@ namespace Client
         private byte[] AES256Key = new byte[32];
         private byte[] AES256IV = new byte[16];
         private string uploadPath = "";
+        private string tempHexaAES256Key = "";
+        private string tempHexaAES256IV = "";
+        private string keyLocationPath = "";
+        private string tempFileName = "";
 
         public Form1()
         {
@@ -49,6 +53,8 @@ namespace Client
             button_Login.Enabled = false;
             textBox_Password.Enabled = false;
             button_disconnect.Enabled = false;
+            browseKeylocation.Enabled = false;
+            button_Upload.Enabled = false;
         }
 
         private void Receive()
@@ -97,6 +103,8 @@ namespace Client
                                     button_Login.Enabled = false;
                                     button_send.Enabled = true;
                                     textBox_message.Enabled = true;
+                                    browseKeylocation.Enabled = true;
+                                    button_Upload.Enabled = true;
                                 }
                                 else // If not verified
                                 {
@@ -136,31 +144,34 @@ namespace Client
                 }
             }
 
-            // will change!
+            //After authentication
             while (connected && authenticated)
             {
                 try
                 {
                     CommunicationMessage msg = receiveMessage(256); // We may need to increase the size since it is a general recieve function
 
-                    richTextBox1.AppendText("received message" + msg.ToString()+"\n");
+                    
 
+                    //Result of the upload request is here
                     if(msg.topic=="File Name")
                     {
                         string actualMessage = msg.message.Substring(0, msg.message.Length - 128);
                         string signature = msg.message.Substring(msg.message.Length - 128);
                         richTextBox1.AppendText("Signature received: " + signature + "\n");
-                        richTextBox1.AppendText("Message received: " + actualMessage + "\n");
+                       
                         if (verifyHmac(signature, actualMessage))
                         {
-                            if (msg.msgCode == MessageCodes.ErrorResponse)
+                            if (msg.msgCode == MessageCodes.ErrorResponse) // If the upload is not successful for any reason
                             {
                                 canContinue = false;
                                 richTextBox1.AppendText("Server could not verify client's signature, upload stopped!\n");
                             }
-                            else if (msg.msgCode == MessageCodes.SuccessfulResponse)
+                            else if (msg.msgCode == MessageCodes.SuccessfulResponse) // If the upload is successful
                             {
-                               
+                                CommunicationMessage uploadmsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
+                                string storedFileName = uploadmsg.message;
+                                saveToKeys(tempFileName,storedFileName);
                                 richTextBox1.AppendText("Upload Successful!\n");
                             }
                         }
@@ -168,6 +179,13 @@ namespace Client
                         {
                             richTextBox1.AppendText("Client could not verify server's signature, upload stopped!\n");
                         }
+                    }
+                    else if(msg.msgCode == MessageCodes.ErrorResponse)
+                    {
+                        canContinue = false;
+                        connectionClosedButtons();
+                        serverSocket.Close();
+                        connected = false;
                     }
                     
                 }
@@ -208,6 +226,8 @@ namespace Client
             textBox_Password.Enabled = false;
             button_disconnect.Enabled = false;
             button_connect.Enabled = true;
+            browseKeylocation.Enabled = false;
+            button_Upload.Enabled = false;
             textBox_Password.Text = "";
             UserPrivateKey = "";
             SessionKey = "";
@@ -259,6 +279,13 @@ namespace Client
             string randomNumber = Encoding.Default.GetString(bytesRandom).Trim('\0');
             richTextBox1.AppendText((length * 8).ToString() + "-bit Random Number: " + generateHexStringFromByteArray(bytesRandom) + "\n"); // For debugging purposes
             return randomNumber;
+        }
+
+        public void saveToKeys(string originalFileName, string storedFileName)
+        {
+            string keyPath = keyLocationPath + "\\keys.txt";
+            string line = originalFileName + "-" + storedFileName + "-" + tempHexaAES256Key + "-" + tempHexaAES256IV + "\n";
+            File.AppendAllText(keyPath, line);
         }
 
 
@@ -339,6 +366,7 @@ namespace Client
                 string fileName = dlg.FileName;
                 uploadPath = fileName;
                 textBox_message.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+                tempFileName = fileName.Substring(fileName.LastIndexOf('\\') + 1);
             }
         }
 
@@ -491,63 +519,78 @@ namespace Client
         // Will change!
         private void button_send_Click(object sender, EventArgs e)
         {
-            using (var file = File.OpenRead(uploadPath)) //opening the file
+            if (authenticated)
             {
-
-                var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
-
-                var sendBuffer = new byte[2048];
-                var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
-                while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0 && canContinue)
+                using (var file = File.OpenRead(uploadPath)) //opening the file
                 {
 
-                    var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
+                    var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
 
-                    string key = randomNumberGenerator(32);
-                    byte[] byteKey = Encoding.Default.GetBytes(key);
-                    string IV = randomNumberGenerator(16);
-                    byte[] byteIV = Encoding.Default.GetBytes(IV);
-                    string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
-
-                    byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
-                    string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
-                    richTextBox1.AppendText("Encrypted Data" + encryptedData + "\n");
-                    UploadMessage umsg;
-
-                    int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
-                    int sub = i - dataToSend;
-                    byte[] sum = BitConverter.GetBytes(sub);
-                    bytesLeftToTransmit = sum;
-                    richTextBox1.AppendText("bytes left: " + sub + "\n");
-                    if (sub <= 0)
+                    var sendBuffer = new byte[2048];
+                    var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
+                    int count = 1;
+                    while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0 && canContinue)
                     {
-                        umsg = new UploadMessage { message = encryptedData, lastPacket = true };
+
+                        var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
+
+                        string key = randomNumberGenerator(32);
+                        byte[] byteKey = Encoding.Default.GetBytes(key);
+                        string IV = randomNumberGenerator(16);
+                        byte[] byteIV = Encoding.Default.GetBytes(IV);
+                        string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
+
+                        tempHexaAES256IV = generateHexStringFromByteArray(byteIV);
+                        tempHexaAES256Key = generateHexStringFromByteArray(byteKey);
+
+                        byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
+                        string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
+                        richTextBox1.AppendText("Encrypted Data" + encryptedData + "\n");
+                        UploadMessage umsg;
+
+                        int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
+                        int sub = i - dataToSend;
+                        byte[] sum = BitConverter.GetBytes(sub);
+                        bytesLeftToTransmit = sum;
+                        richTextBox1.AppendText("bytes left: " + sub + "\n");
+                        if (sub <= 0)
+                        {
+                            umsg = new UploadMessage { message = encryptedData, lastPacket = true };
+                        }
+                        else
+                        {
+                            umsg = new UploadMessage { message = encryptedData, lastPacket = false };
+                        }
+
+                        string jsonUpload = JsonConvert.SerializeObject(umsg);
+                        byte[] byteKEY = Encoding.Default.GetBytes(SessionKey);
+                        byte[] byteHMAC = applyHMACwithSHA512(jsonUpload, byteKEY);
+                        string stringHMAC = generateHexStringFromByteArray(byteHMAC);
+                        richTextBox1.AppendText("Sending packet "+count.ToString()+"\n");
+                        richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
+                        send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
+                        count++;
+                        Thread.Sleep(1000);
+
                     }
-                    else
-                    {
-                        umsg = new UploadMessage { message = encryptedData, lastPacket = false };
-                    }
 
-                    string jsonUpload = JsonConvert.SerializeObject(umsg);
-                    byte[] byteKEY = Encoding.Default.GetBytes(SessionKey);
-                    byte[] byteHMAC = applyHMACwithSHA512(jsonUpload, byteKEY);
-                    string stringHMAC = generateHexStringFromByteArray(byteHMAC);
-                    richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
-                    send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
-                    //Thread.Sleep(1000);
 
-                    //loop until the socket have sent everything in the buffer.
-                    //var offset = 0;
-
-                    //while (dataToSend > 0)
-                    //{
-                    //    var bytesSent = serverSocket.Send(sendBuffer, offset, dataToSend, SocketFlags.None);
-                    //    dataToSend -= bytesSent;
-                    //    offset += bytesSent;
-                    //}
                 }
+            }
+            else
+            {
+                richTextBox1.AppendText("You are not authenticated.\n");
+            }
+        }
 
-               
+        private void browseKeylocation_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                keyLocationPath = fbd.SelectedPath;
+                string onlyFolderName = keyLocationPath.Substring(keyLocationPath.LastIndexOf('\\') + 1);
+                keyLocation_text.Text = onlyFolderName;
             }
         }
 
@@ -853,7 +896,6 @@ namespace Client
 
             return result;
         }
-
 
 
     }
