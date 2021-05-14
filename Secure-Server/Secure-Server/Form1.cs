@@ -255,12 +255,15 @@ namespace Secure_Server
                             if (handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s))
                             {
                                 richTextBox_ConsoleOut.AppendText("I am the last packet");
-                                string fileStream = folderPath + "\\" + username + "_" + fileNumber + ".txt";
+                                string fileStream = username + "_" + fileNumber + ".txt";
+
                                 string fileNameMsg = createCommunicationMessage(MessageCodes.SuccessfulResponse, "File Name", fileStream);
                                 string fileSignature = generateHexStringFromByteArray(applyHMACwithSHA512(fileNameMsg, HMACKey));
-                                byte[] fileNameBuffer = Encoding.Default.GetBytes(fileNameMsg + fileSignature);
+
+                                string finalMessage = createCommunicationMessage(MessageCodes.SuccessfulResponse, "File Name", fileNameMsg + fileSignature);
+                                byte[] finalBuffer = Encoding.Default.GetBytes(finalMessage);
                                 userFileCount[username]++;
-                                s.Send(fileNameBuffer);
+                                s.Send(finalBuffer);
                                 
                             }
                         }

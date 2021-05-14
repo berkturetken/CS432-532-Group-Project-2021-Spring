@@ -141,16 +141,35 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage confirm = receiveMessage(256);
-                    if (confirm.msgCode == MessageCodes.ErrorResponse)
+                    CommunicationMessage msg = receiveMessage(256); // We may need to increase the size since it is a general recieve function
+
+                    richTextBox1.AppendText("received message" + msg.ToString()+"\n");
+
+                    if(msg.topic=="File Name")
                     {
-                        canContinue = false;
-                        richTextBox1.AppendText("Server could not verify signature, upload stopped!\n");
+                        string actualMessage = msg.message.Substring(0, msg.message.Length - 128);
+                        string signature = msg.message.Substring(msg.message.Length - 128);
+                        richTextBox1.AppendText("Signature received: " + signature + "\n");
+                        richTextBox1.AppendText("Message received: " + actualMessage + "\n");
+                        if (verifyHmac(signature, actualMessage))
+                        {
+                            if (msg.msgCode == MessageCodes.ErrorResponse)
+                            {
+                                canContinue = false;
+                                richTextBox1.AppendText("Server could not verify client's signature, upload stopped!\n");
+                            }
+                            else if (msg.msgCode == MessageCodes.SuccessfulResponse)
+                            {
+                               
+                                richTextBox1.AppendText("Upload Successful!\n");
+                            }
+                        }
+                        else
+                        {
+                            richTextBox1.AppendText("Client could not verify server's signature, upload stopped!\n");
+                        }
                     }
-                    else if(confirm.msgCode == MessageCodes.SuccessfulResponse && confirm.topic == "File Name")
-                    {
-                        richTextBox1.AppendText("Upload Successful!\n");
-                    }
+                    
                 }
                 catch
                 {
@@ -192,6 +211,20 @@ namespace Client
             textBox_Password.Text = "";
             UserPrivateKey = "";
             SessionKey = "";
+        }
+
+        public bool verifyHmac(string signature, string message)
+        {
+            string sessionKey = SessionKey;
+            byte[] key_bytes = Encoding.Default.GetBytes(sessionKey);
+            byte[] hmac_message = applyHMACwithSHA512(message, key_bytes);
+
+            string hmac = generateHexStringFromByteArray(hmac_message);
+
+            if (hmac == signature)
+                return true;
+            return false;
+
         }
 
         // Sends any kind of message to the server
@@ -501,7 +534,7 @@ namespace Client
                     string stringHMAC = generateHexStringFromByteArray(byteHMAC);
                     richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
                     send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
-                    Thread.Sleep(1000);
+                    //Thread.Sleep(1000);
 
                     //loop until the socket have sent everything in the buffer.
                     //var offset = 0;
