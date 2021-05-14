@@ -240,7 +240,7 @@ namespace Secure_Server
                         //While this is not the last packet and verified
                         while (!uploadMsg.lastPacket && verified)
                         {
-                            verified = handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s); //Write to the file and handle verification
+                            verified = handleUploadRequests(signatureHexa, encryptedData, uploadMsg.message, username, fileNumber, HMACKey, s); //Write to the file and handle verification
                             commMsg = receiveMessage(s, 4352); // Continue receiving
                             msg = commMsg.message;
                             encryptedData = msg.Substring(0, msg.Length - 128);
@@ -251,8 +251,8 @@ namespace Secure_Server
                         }
 
                         if (verified) // If everything is verified and we are in the last packet
-                        {                
-                            if (handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s))
+                        {
+                            if (handleUploadRequests(signatureHexa, encryptedData, uploadMsg.message, username, fileNumber, HMACKey, s))
                             {
                                 richTextBox_ConsoleOut.AppendText("I am the last packet");
                                 string fileStream = folderPath + "\\" + username + "_" + fileNumber + ".txt";
@@ -454,7 +454,7 @@ namespace Secure_Server
             
         }
 
-        public bool handleUploadRequests(string signatureHexa,string encryptedData, string username, int fileNumber, byte[] HMACKey, Socket s)
+        public bool handleUploadRequests(string signatureHexa,string encryptedData, string uploadmessage, string username, int fileNumber, byte[] HMACKey, Socket s)
         {
 
             if (verifyHmac(signatureHexa, username, encryptedData))
@@ -464,8 +464,7 @@ namespace Secure_Server
                 string fileStream = folderPath +"\\"+ username + "_" + fileNumber + ".txt";
                 FileStream target_file = File.Open(fileStream, FileMode.Append);
                 BinaryWriter bWrite = new BinaryWriter(target_file);
-                encryptedData = encryptedData.Substring(12);
-                bWrite.Write(Encoding.Default.GetBytes(encryptedData), 0, 2048);
+                bWrite.Write(Encoding.Default.GetBytes(uploadmessage), 0, uploadmessage.Length);
                 //I tried to read but we can't read the file!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 //string deneme = File.ReadAllText(fileStream);
                 //richTextBox_ConsoleOut.AppendText("Deneme okuması: " + deneme + "\n");
