@@ -24,6 +24,7 @@ namespace Client
         bool terminating = false;
         bool connected = false;
         bool authenticated = false;
+        bool canContinue = true;
         Socket serverSocket;
 
         private string ServerKey = "";
@@ -140,8 +141,16 @@ namespace Client
             {
                 try
                 {
-                    Byte[] buffer = new Byte[64];
-                    serverSocket.Receive(buffer);
+                    CommunicationMessage confirm = receiveMessage(256);
+                    if (confirm.msgCode == MessageCodes.ErrorResponse)
+                    {
+                        canContinue = false;
+                        richTextBox1.AppendText("Server could not verify signature, upload stopped!\n");
+                    }
+                    else if(confirm.msgCode == MessageCodes.SuccessfulResponse && confirm.topic == "File Name")
+                    {
+                        richTextBox1.AppendText("Upload Successful!\n");
+                    }
                 }
                 catch
                 {
@@ -456,7 +465,7 @@ namespace Client
 
                 var sendBuffer = new byte[2048];
                 var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
-                while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0)
+                while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0 && canContinue)
                 {
 
                     var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
@@ -492,6 +501,7 @@ namespace Client
                     string stringHMAC = generateHexStringFromByteArray(byteHMAC);
                     richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
                     send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
+                    Thread.Sleep(1000);
 
                     //loop until the socket have sent everything in the buffer.
                     //var offset = 0;
@@ -503,6 +513,8 @@ namespace Client
                     //    offset += bytesSent;
                     //}
                 }
+
+               
             }
         }
 

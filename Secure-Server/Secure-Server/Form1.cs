@@ -212,7 +212,7 @@ namespace Secure_Server
 
                 try
                 {
-                    CommunicationMessage commMsg = receiveMessage(s, 4362);
+                    CommunicationMessage commMsg = receiveMessage(s, 4352);
                     richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.ToString() + "\n");
                     richTextBox_ConsoleOut.AppendText("Received Communication Message: " + commMsg.msgCode + "\n");
 
@@ -241,10 +241,10 @@ namespace Secure_Server
                         while (!uploadMsg.lastPacket && verified)
                         {
                             verified = handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s); //Write to the file and handle verification
-                            commMsg = receiveMessage(s, 4362); // Continue receiving
+                            commMsg = receiveMessage(s, 4352); // Continue receiving
                             msg = commMsg.message;
-                            encryptedData = msg.Substring(0, msg.Length - 1024);
-                            signatureHexa = msg.Substring(msg.Length - 1024);
+                            encryptedData = msg.Substring(0, msg.Length - 128);
+                            signatureHexa = msg.Substring(msg.Length - 128);
                             uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(encryptedData);
                             richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                             richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
@@ -255,12 +255,13 @@ namespace Secure_Server
                             if (handleUploadRequests(signatureHexa,encryptedData, username, fileNumber, HMACKey, s))
                             {
                                 richTextBox_ConsoleOut.AppendText("I am the last packet");
-                                string fileStream = folderPath + "\\" + username + "_" + fileNumber;
+                                string fileStream = folderPath + "\\" + username + "_" + fileNumber + ".txt";
                                 string fileNameMsg = createCommunicationMessage(MessageCodes.SuccessfulResponse, "File Name", fileStream);
                                 string fileSignature = generateHexStringFromByteArray(applyHMACwithSHA512(fileNameMsg, HMACKey));
                                 byte[] fileNameBuffer = Encoding.Default.GetBytes(fileNameMsg + fileSignature);
                                 userFileCount[username]++;
                                 s.Send(fileNameBuffer);
+                                
                             }
                         }
 
@@ -460,13 +461,15 @@ namespace Secure_Server
             {
                 richTextBox_ConsoleOut.AppendText("Signature Verified!\n");
                 richTextBox_ConsoleOut.AppendText("Encrypted Data size " + Encoding.Default.GetBytes(encryptedData).Length +"\n");
-                string fileStream = folderPath +"\\"+ username + "_" + fileNumber;
+                string fileStream = folderPath +"\\"+ username + "_" + fileNumber + ".txt";
                 FileStream target_file = File.Open(fileStream, FileMode.Append);
                 BinaryWriter bWrite = new BinaryWriter(target_file);
+                encryptedData = encryptedData.Substring(12);
                 bWrite.Write(Encoding.Default.GetBytes(encryptedData), 0, 2048);
                 //I tried to read but we can't read the file!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 //string deneme = File.ReadAllText(fileStream);
                 //richTextBox_ConsoleOut.AppendText("Deneme okuması: " + deneme + "\n");
+                target_file.Close();
                 return true;
             }
             else
