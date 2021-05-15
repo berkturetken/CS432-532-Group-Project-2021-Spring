@@ -284,7 +284,7 @@ namespace Client
 
         public void saveToKeys(string originalFileName, string storedFileName)
         {
-            string keyPath = keyLocationPath + "\\keys.txt";
+            string keyPath = keyLocationPath + "\\keys_" + name + ".txt";
             string line = originalFileName + "-" + storedFileName + "-" + tempHexaAES256Key + "-" + tempHexaAES256IV + "\n";
             File.AppendAllText(keyPath, line);
         }
