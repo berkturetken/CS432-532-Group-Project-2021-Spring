@@ -186,6 +186,7 @@ namespace Client
                         connectionClosedButtons();
                         serverSocket.Close();
                         connected = false;
+                        richTextBox1.AppendText("Server could not verify client's signature, upload stopped!\n");
                     }
                     
                 }

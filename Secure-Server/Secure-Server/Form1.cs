@@ -221,6 +221,12 @@ namespace Secure_Server
                         richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() +" from "+username+ "\n");
                         //Get the file number to give and hmac to use
                         int fileNumber = userFileCount[username] + 1;
+                        string fileStreamCheck = folderPath + "\\" + username + "_" + fileNumber + ".txt";
+                        while (File.Exists(fileStreamCheck))
+                        {
+                            fileNumber++;
+                            fileStreamCheck = folderPath + "\\" + username + "_" + fileNumber + ".txt";
+                        }
                         byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
 
                         //msg part of the communication message is uploadmessage + signature
