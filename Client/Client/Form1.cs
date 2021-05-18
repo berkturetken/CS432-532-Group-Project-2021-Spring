@@ -149,7 +149,7 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(256); // We may need to increase the size since it is a general recieve function
+                    CommunicationMessage msg = receiveMessage(2048); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
@@ -178,6 +178,7 @@ namespace Client
                             richTextBox1.AppendText("Client could not verify server's signature, upload stopped!\n");
                         }
                     }
+                    /*
                     else if(msg.msgCode == MessageCodes.ErrorResponse)
                     {
                         canContinue = false;
@@ -185,6 +186,31 @@ namespace Client
                         serverSocket.Close();
                         connected = false;
                         richTextBox1.AppendText("Server could not verify client's signature, upload stopped!\n");
+                    }
+                    */
+                    else if(msg.topic == "DownloadRequest")
+                    {
+                        if(msg.msgCode == MessageCodes.ErrorResponse)
+                        {
+                            string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
+                            string signatureHex = msg.message.Substring(msg.message.Length - 1024);
+                            richTextBox1.AppendText("Signature in hex: " + signatureHex + "\n");
+                            byte[] signatureBytes = hexStringToByteArray(signatureHex);
+
+                            richTextBox1.AppendText("Actual message: " + actualMessage + "\n");
+
+                            bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
+
+                            if(isVerified)
+                            {
+                                CommunicationMessage inMsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
+                                richTextBox1.AppendText("Message from server: " + inMsg.message + " Download request is cancelled.\n");
+                            }
+                            else
+                            {
+                                richTextBox1.AppendText("Could not verify the message from server!\n");
+                            }
+                        }
                     }
                     
                 }
