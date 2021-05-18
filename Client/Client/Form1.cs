@@ -593,7 +593,14 @@ namespace Client
             }
         }
 
-
+        private void buttonRequest_Click(object sender, EventArgs e)
+        {
+            string requestedFileName = textBoxRequestFileName.Text;
+            byte[] requestedFileNameSignature = signWithRSA(requestedFileName, 4096, UserPrivateKey);
+            string message = requestedFileName + Encoding.Default.GetString(requestedFileNameSignature);
+            richTextBox1.AppendText("Download Request: " + message + "\n");
+            send_message(message, "DownloadRequest", MessageCodes.DownloadRequest);
+        }
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
         static string generateHexStringFromByteArray(byte[] input)
@@ -896,6 +903,6 @@ namespace Client
             return result;
         }
 
-
+        
     }
 }

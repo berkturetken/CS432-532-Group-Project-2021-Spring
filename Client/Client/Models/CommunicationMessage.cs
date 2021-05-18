@@ -12,7 +12,8 @@ namespace Client.Models
         SuccessfulResponse,
         ErrorResponse,
         DisconnectResponse,
-        UploadRequest
+        UploadRequest,
+        DownloadRequest
     }
 
     public class UploadMessage
