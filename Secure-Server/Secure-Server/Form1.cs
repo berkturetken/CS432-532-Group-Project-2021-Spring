@@ -32,7 +32,7 @@ namespace Secure_Server
         string folderPath = "";
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
-        Dictionary<string, string> userHMACKeys = new Dictionary<string, string>(); // session keys
+        Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();     // Session keys
         Dictionary<string, int> userFileCount = new Dictionary<string, int>();
 
         public Form1()
@@ -275,35 +275,69 @@ namespace Secure_Server
                             }
                         }
                     }
+
                     // When "Download Request" comes
                     else if (commMsg.msgCode == MessageCodes.DownloadRequest)
                     {
                         string msg = commMsg.message;
                         string clientPubKey = userPubKeys[username];
 
-                        string requestedFileNameHexa = msg.Substring(0, msg.Length - 1024);
+                        // Extract the signature
+                        string requestedFileNameInHexa = msg.Substring(0, msg.Length - 1024);
                         string signatureHexa = msg.Substring(msg.Length - 1024);
-                        // Verify the signed download request retrieved from the client
-                        byte[] requestedFileNameInBytes = hexStringToByteArray(requestedFileNameHexa);
+
+                        // Perform the necessary conversions
+                        byte[] requestedFileNameInBytes = hexStringToByteArray(requestedFileNameInHexa);
                         string requestedFileName = Encoding.Default.GetString(requestedFileNameInBytes);
                         byte[] signatureInBytes = hexStringToByteArray(signatureHexa);
 
+                        // Verify the signed download request retrieved from the client
                         bool isVerified = verifyWithRSA(requestedFileName, 4096, clientPubKey, signatureInBytes);
                         if (!isVerified)
                         {
-                            richTextBox_ConsoleOut.AppendText("Signature is not verified!\n");
-                            string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", "Signature is not verified!");
-                            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
-                            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
-
-                            string requestSignatureProblem = negativeAckJSON + hexSignedNegativeAck;
-                            string finalMessage = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", requestSignatureProblem);
+                            string finalMessage = generateFailureMessage("Signature is not verified!", "DownloadRequest");
                             sendMessage(s, finalMessage);
                         }
+                        // If verified
                         else
                         {
-                            // continue
-                            richTextBox_ConsoleOut.AppendText("Inside else\n");
+                            richTextBox_ConsoleOut.AppendText("Signature is verified.\n");
+                            int index = requestedFileName.IndexOf('_');
+                            if (index == -1)
+                            {
+                                // File format is NOT valid
+                            }
+                            else
+                            {
+                                string requestedFileOwner = requestedFileName.Substring(0, index);
+                                string requestedFile = requestedFileName.Substring(index + 1);
+                                int requestedFileNumber = Int32.Parse(requestedFile);
+                                foreach (KeyValuePair<string, int> kvp in userFileCount)
+                                {
+                                    richTextBox_ConsoleOut.AppendText("Key-Value --> " + kvp.Key + " - " + kvp.Value + "\n");
+                                }
+
+                                // If the file exists and the user is connected
+                                if (!(userFileCount.ContainsKey(requestedFileOwner) && userFileCount[requestedFileOwner] >= requestedFileNumber && userHMACKeys.ContainsKey(requestedFileOwner)))
+                                {
+                                    string errorMsg = generateFailureMessage("Either the file does not exist or the owner is not connected.", "DownloadRequest");
+                                    sendMessage(s, errorMsg);
+                                }
+                                else
+                                {
+                                    // User requests one of his/her [:)] own file
+                                    if (requestedFileOwner == username)
+                                    {
+                                        string filePath = folderPath + "\\" + requestedFileName + ".txt";
+                                        readAndSendFile(s, filePath);
+                                        richTextBox_ConsoleOut.AppendText("File is sent to the client.\n");
+                                    }
+                                    // User requests someone else's file
+                                    else
+                                    {
+                                    }
+                                } 
+                            }   
                         }
                     }
                 }
@@ -340,6 +374,64 @@ namespace Secure_Server
 
 
         // Helper Functions
+        public void readAndSendFile(Socket s, string path)
+        {
+            using (var file = File.OpenRead(path))  // opening the file
+            {
+                var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
+
+                var sendBuffer = new byte[2048];
+                var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
+                int count = 1;
+
+                while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0)
+                {
+                    var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length);   // read inside of the file(to sendBuffer)
+                    string sendBufferInHexa = generateHexStringFromByteArray(sendBuffer);
+
+                    int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
+                    int sub = i - dataToSend;
+                    byte[] sum = BitConverter.GetBytes(sub);
+                    bytesLeftToTransmit = sum;
+                    richTextBox_ConsoleOut.AppendText("Bytes left: " + sub + "\n");
+
+                    string sentData = "";
+                    if (sub <= 0)
+                    {
+                        sentData = createUploadMessage(sendBufferInHexa, true);
+                    }
+                    else
+                    {
+                        sentData = createUploadMessage(sendBufferInHexa, false);
+                    }
+                    
+                    richTextBox_ConsoleOut.AppendText("Sending packet " + count + "\n");
+                    richTextBox_ConsoleOut.AppendText("Sent message size :" + sentData.Length + "\n");
+                    string sentDataJson = createCommunicationMessage(MessageCodes.DownloadRequest, "DownloadRequest", sentData);
+                    byte[] sentDataJsonSignature = signWithRSA(sentDataJson, 4096, serverPrivateKey);
+                    string finalMessage = sentDataJson + Encoding.Default.GetString(sentDataJsonSignature);
+                    string finalMessageJson = createCommunicationMessage(MessageCodes.DownloadRequest, "DownloadRequest", finalMessage);
+                    sendMessage(s, finalMessageJson);
+                    count++;
+                    Thread.Sleep(1000);
+                }
+                richTextBox_ConsoleOut.AppendText("File transfer is done.\n");
+            }
+        }
+
+        public string generateFailureMessage(string failureMessage, string failureTopic)
+        {
+            richTextBox_ConsoleOut.AppendText(failureMessage + "\n");
+            string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, failureTopic, failureMessage);
+            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
+            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
+
+            string messageWithSignature = negativeAckJSON + hexSignedNegativeAck;
+            // TODO: What should be the first message code?
+            string finalMessage = createCommunicationMessage(MessageCodes.ErrorResponse, failureTopic, messageWithSignature);
+            return finalMessage;
+        }
+
         public void getUserName(Socket newClient)
         {
             string username = "";
@@ -411,6 +503,17 @@ namespace Secure_Server
             for (int i = 0; i < numberChars; i += 2)
                 bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
             return bytes;
+        }
+
+        public string createUploadMessage(string message, bool lastPacket)
+        {
+            UploadMessage uMsg = new UploadMessage
+            {
+                message = message,
+                lastPacket = lastPacket
+            };
+            string uMsgJSON = JsonConvert.SerializeObject(uMsg);
+            return uMsgJSON;
         }
 
         public string createCommunicationMessage(MessageCodes msgCode, string topic, string message)
