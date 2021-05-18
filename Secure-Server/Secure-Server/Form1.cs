@@ -278,7 +278,33 @@ namespace Secure_Server
                     // When "Download Request" comes
                     else if (commMsg.msgCode == MessageCodes.DownloadRequest)
                     {
+                        string msg = commMsg.message;
+                        string clientPubKey = userPubKeys[username];
 
+                        string requestedFileNameHexa = msg.Substring(0, msg.Length - 1024);
+                        string signatureHexa = msg.Substring(msg.Length - 1024);
+                        // Verify the signed download request retrieved from the client
+                        byte[] requestedFileNameInBytes = hexStringToByteArray(requestedFileNameHexa);
+                        string requestedFileName = Encoding.Default.GetString(requestedFileNameInBytes);
+                        byte[] signatureInBytes = hexStringToByteArray(signatureHexa);
+
+                        bool isVerified = verifyWithRSA(requestedFileName, 4096, clientPubKey, signatureInBytes);
+                        if (!isVerified)
+                        {
+                            richTextBox_ConsoleOut.AppendText("Signature is not verified!\n");
+                            string negativeAckJSON = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", "Signature is not verified!");
+                            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, serverPrivateKey);
+                            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
+
+                            string requestSignatureProblem = negativeAckJSON + hexSignedNegativeAck;
+                            string finalMessage = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", requestSignatureProblem);
+                            sendMessage(s, finalMessage);
+                        }
+                        else
+                        {
+                            // continue
+                            richTextBox_ConsoleOut.AppendText("Inside else\n");
+                        }
                     }
                 }
                 catch

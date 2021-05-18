@@ -598,8 +598,10 @@ namespace Client
             string requestedFileName = textBoxRequestFileName.Text;
             byte[] requestedFileNameSignature = signWithRSA(requestedFileName, 4096, UserPrivateKey);
             string message = requestedFileName + Encoding.Default.GetString(requestedFileNameSignature);
-            richTextBox1.AppendText("Download Request: " + message + "\n");
-            send_message(message, "DownloadRequest", MessageCodes.DownloadRequest);
+            string messageHex = generateHexStringFromByteArray(Encoding.Default.GetBytes(message));
+            richTextBox1.AppendText("Download Request: " + messageHex + "\n");
+            richTextBox1.AppendText("Length of the message: " + messageHex.Length + "\n");
+            send_message(messageHex, "DownloadRequest", MessageCodes.DownloadRequest);
         }
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
