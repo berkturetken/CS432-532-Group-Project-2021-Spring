@@ -186,8 +186,7 @@ namespace Secure_Server
             }
         }
 
-        // Username is send from accept thread to find the files in the Public Key repo
-        private void Receive(Socket s, string username)  
+        private void Receive(Socket s, string username) //username is send from accept thread, to be used to find files in public key repo. 
         {
             // Challenge-Response Phase 1
             bool connected = true;
@@ -214,12 +213,11 @@ namespace Secure_Server
                 {
                     CommunicationMessage commMsg = receiveMessage(s, 4352);
                     
-                    // When "Upload Request" comes
-                    // TODO: Refactor the below code
+                    // "Upload Request" comes
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
                         int count = 1;
-                        richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() +" from " + username + "\n");
+                        richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() +" from "+username+ "\n");
                         //Get the file number to give and hmac to use
                         int fileNumber = userFileCount[username] + 1;
                         string fileStreamCheck = folderPath + "\\" + username + "_" + fileNumber + ".txt";
@@ -274,11 +272,6 @@ namespace Secure_Server
                                 s.Send(finalBuffer);
                             }
                         }
-                    }
-                    // When "Download Request" comes
-                    else if (commMsg.msgCode == MessageCodes.DownloadRequest)
-                    {
-
                     }
                 }
                 catch

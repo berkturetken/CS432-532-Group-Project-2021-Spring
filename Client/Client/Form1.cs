@@ -151,8 +151,6 @@ namespace Client
                 {
                     CommunicationMessage msg = receiveMessage(256); // We may need to increase the size since it is a general recieve function
 
-                    
-
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
                     {
@@ -546,7 +544,7 @@ namespace Client
 
                         byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
                         string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
-                        richTextBox1.AppendText("Encrypted Data" + encryptedData + "\n");
+                        richTextBox1.AppendText("Encrypted Data:\n" + encryptedData + "\n");
                         UploadMessage umsg;
 
                         int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
