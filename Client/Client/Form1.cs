@@ -280,7 +280,10 @@ namespace Client
         private void saveFile(string fileName, string data)
         {
             string path = downloadPath + "\\" + fileName;
+            richTextBox1.AppendText("[saveFile]DownloadPath: " + downloadPath + "\n");
+            richTextBox1.AppendText("[saveFile]File Name: " + fileName + "\n");
             File.AppendAllText(path, data);
+            richTextBox1.AppendText("saveFileend\n");
         }
 
         private string extractOriginalFileNameFromFile()
@@ -306,9 +309,7 @@ namespace Client
             using (var file = File.OpenRead(filePath))
             {
                 byte[] content = new byte[256];
-                richTextBox1.AppendText("key1");
                 file.Read(content, 0, content.Length);
-                richTextBox1.AppendText("key2");
                 string contentStr = Encoding.Default.GetString(content).Trim('\0');
                 string[] elements = contentStr.Split('-');
                 key = elements[1];
