@@ -386,9 +386,9 @@ namespace Secure_Server
 
                 while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0)
                 {
-                    var dataToSend = file.Read(sendBuffer, 0, 1024);   // read inside of the file(to sendBuffer)
+                    var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length);   // read inside of the file(to sendBuffer)
                     string sendBufferInHexa = Encoding.Default.GetString(sendBuffer);
-                    richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + "\n");
+                    richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
 
                     int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
                     int sub = i - dataToSend;
@@ -407,12 +407,15 @@ namespace Secure_Server
                     }
                     
                     richTextBox_ConsoleOut.AppendText("Sending packet " + count + "\n");
+                    richTextBox_ConsoleOut.AppendText("Read data:" + sentData + Environment.NewLine);
                     richTextBox_ConsoleOut.AppendText("Sent message size :" + sentData.Length + "\n");
                     string sentDataJson = createCommunicationMessage(MessageCodes.SuccessfulResponse, "DownloadRequest", sentData);
+                    richTextBox_ConsoleOut.AppendText("Data with comm Msg:" + sentDataJson + Environment.NewLine);
                     byte[] sentDataJsonSignature = signWithRSA(sentDataJson, 4096, serverPrivateKey);
-                    string finalMessage = sentDataJson + Encoding.Default.GetString(sentDataJsonSignature);
+                    string finalMessage = sentDataJson + generateHexStringFromByteArray(sentDataJsonSignature);
                     string finalMessageJson = createCommunicationMessage(MessageCodes.OwnFileSuccessfulDownload, "DownloadRequest", finalMessage);
-                    richTextBox_ConsoleOut.AppendText("Final Message: " + finalMessageJson + "\n");
+                    richTextBox_ConsoleOut.AppendText("Length of Final Message: " + finalMessageJson.Length + "\n");
+                    richTextBox_ConsoleOut.AppendText("Final Message: " + finalMessageJson + Environment.NewLine);
                     sendMessage(s, finalMessageJson);
                     count++;
                     Thread.Sleep(1000);

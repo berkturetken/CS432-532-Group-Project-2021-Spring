@@ -150,7 +150,7 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(8192); // We may need to increase the size since it is a general recieve function
+                    CommunicationMessage msg = receiveMessage(4096); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
