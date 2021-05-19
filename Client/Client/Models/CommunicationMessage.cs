@@ -32,6 +32,13 @@ namespace Client.Models
         public string requesterPublicKey;
     }
 
+    public class ClassifiedInfo
+    {
+        public string key;
+        public string IV;
+        public string originalFileName;
+    }
+
     public class CommunicationMessage
     {
         public MessageCodes msgCode;
