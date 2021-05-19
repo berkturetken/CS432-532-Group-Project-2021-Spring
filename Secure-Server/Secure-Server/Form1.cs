@@ -329,7 +329,7 @@ namespace Secure_Server
                                     if (requestedFileOwner == username)
                                     {
                                         string filePath = folderPath + "\\" + requestedFileName + ".txt";
-                                        readAndSendFile(s, filePath);
+                                        readFileAndSend(s, filePath);
                                         richTextBox_ConsoleOut.AppendText("File is sent to the client.\n");
                                     }
                                     // User requests someone else's file
@@ -374,7 +374,7 @@ namespace Secure_Server
 
 
         // Helper Functions
-        public void readAndSendFile(Socket s, string path)
+        public void readFileAndSend(Socket s, string path)
         {
             using (var file = File.OpenRead(path))  // opening the file
             {
@@ -407,10 +407,10 @@ namespace Secure_Server
                     
                     richTextBox_ConsoleOut.AppendText("Sending packet " + count + "\n");
                     richTextBox_ConsoleOut.AppendText("Sent message size :" + sentData.Length + "\n");
-                    string sentDataJson = createCommunicationMessage(MessageCodes.DownloadRequest, "DownloadRequest", sentData);
+                    string sentDataJson = createCommunicationMessage(MessageCodes.SuccessfulResponse, "DownloadRequest", sentData);
                     byte[] sentDataJsonSignature = signWithRSA(sentDataJson, 4096, serverPrivateKey);
                     string finalMessage = sentDataJson + Encoding.Default.GetString(sentDataJsonSignature);
-                    string finalMessageJson = createCommunicationMessage(MessageCodes.DownloadRequest, "DownloadRequest", finalMessage);
+                    string finalMessageJson = createCommunicationMessage(MessageCodes.OwnFileSuccessfulDownload, "DownloadRequest", finalMessage);
                     sendMessage(s, finalMessageJson);
                     count++;
                     Thread.Sleep(1000);

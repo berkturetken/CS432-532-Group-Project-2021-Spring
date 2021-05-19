@@ -13,7 +13,9 @@ namespace Secure_Server.Models
         ErrorResponse,
         DisconnectResponse,
         UploadRequest,
-        DownloadRequest
+        DownloadRequest,
+        OwnFileSuccessfulDownload,
+        OtherFileSuccessfulDownload
     }
 
     public class UploadMessage
