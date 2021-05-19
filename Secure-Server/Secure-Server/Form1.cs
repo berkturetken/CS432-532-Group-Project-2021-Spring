@@ -23,7 +23,7 @@ namespace Secure_Server
         bool listening = false;
         
         Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        List<Socket> socketList = new List<Socket>();
+        Dictionary<string, Socket> socketList = new Dictionary<string, Socket>();
         List<string> usernames = new List<string>();
 
         string serverPublicKey = "";
@@ -48,7 +48,7 @@ namespace Secure_Server
             terminating = true;
             string disconnectMessage = createCommunicationMessage(MessageCodes.DisconnectResponse, "Disconnect", "Server disconnected\n");
             byte[] msg = Encoding.Default.GetBytes(disconnectMessage);
-            foreach(Socket c in socketList)
+            foreach(Socket c in socketList.Values)
             {
                 c.Send(msg);
             }
@@ -343,11 +343,12 @@ namespace Secure_Server
                                         };
                                         string requesterInfoJSON = JsonConvert.SerializeObject(requesterInfo);
                                         string commMsgRequesterInfo = createCommunicationMessage(MessageCodes.RequesterInfo, "DownloadRequest", requesterInfoJSON);
-                                        byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
+                                        byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[requestedFileOwner]);
                                         byte[] hmacBytes = applyHMACwithSHA512(commMsgRequesterInfo, HMACKey);
-                                        string finalMessage = commMsgRequesterInfo + generateHexStringFromByteArray(hmacBytes);
+                                        string commMsgRequesterInfoWithHMAC = commMsgRequesterInfo + generateHexStringFromByteArray(hmacBytes);
+                                        string finalMessage = createCommunicationMessage(MessageCodes.RequesterInfo, "DownloadRequest", commMsgRequesterInfoWithHMAC);
                                         richTextBox_ConsoleOut.AppendText("[Someone else's file] Final message len: " + finalMessage.Length + "\n");
-                                        sendMessage(s, finalMessage);
+                                        sendMessage(socketList[requestedFileOwner], finalMessage);
                                     }
                                 } 
                             }   
@@ -468,7 +469,7 @@ namespace Secure_Server
                 }
                 else
                 {
-                    socketList.Add(newClient);
+                    socketList[username] = newClient;
                     string message = createCommunicationMessage(MessageCodes.SuccessfulResponse, "User name", "You connected succesfully!\n");
                     sendMessage(newClient, message);
                     usernames.Add(username);
@@ -574,7 +575,7 @@ namespace Secure_Server
         public void closeConnection(Socket client, string username)
         {
             client.Close();
-            socketList.Remove(client);
+            socketList.Remove(username);
             usernames.Remove(username);
             userHMACKeys.Remove(username);
             userPubKeys.Remove(username);
@@ -630,6 +631,7 @@ namespace Secure_Server
             }
             else
             {
+                //Son gönderilen mesajin CommunicationMessage olmasi lazim
                 string negativeAck = createCommunicationMessage(MessageCodes.ErrorResponse, "Signature Error", "Signature can't be verified during Upload");
                 byte[] hmacBytes = applyHMACwithSHA512(negativeAck, HMACKey);
                 string finalMsg = negativeAck + generateHexStringFromByteArray(hmacBytes);

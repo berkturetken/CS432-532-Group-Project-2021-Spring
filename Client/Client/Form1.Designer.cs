@@ -60,12 +60,14 @@
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.buttonDownloadLocation = new System.Windows.Forms.Button();
+            this.textBoxDownloadLocation = new System.Windows.Forms.TextBox();
+            this.labelDownloadLocation = new System.Windows.Forms.Label();
             this.buttonRequest = new System.Windows.Forms.Button();
             this.textBoxRequestFileName = new System.Windows.Forms.TextBox();
             this.labelRequestFileName = new System.Windows.Forms.Label();
-            this.labelDownloadLocation = new System.Windows.Forms.Label();
-            this.textBoxDownloadLocation = new System.Windows.Forms.TextBox();
-            this.buttonDownloadLocation = new System.Windows.Forms.Button();
+            this.buttonAccept = new System.Windows.Forms.Button();
+            this.buttonReject = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -420,6 +422,8 @@
             // 
             // groupBox3
             // 
+            this.groupBox3.Controls.Add(this.buttonReject);
+            this.groupBox3.Controls.Add(this.buttonAccept);
             this.groupBox3.Controls.Add(this.buttonDownloadLocation);
             this.groupBox3.Controls.Add(this.textBoxDownloadLocation);
             this.groupBox3.Controls.Add(this.labelDownloadLocation);
@@ -430,10 +434,36 @@
             this.groupBox3.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox3.Name = "groupBox3";
             this.groupBox3.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox3.Size = new System.Drawing.Size(300, 145);
+            this.groupBox3.Size = new System.Drawing.Size(300, 164);
             this.groupBox3.TabIndex = 34;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Request File";
+            // 
+            // buttonDownloadLocation
+            // 
+            this.buttonDownloadLocation.Location = new System.Drawing.Point(219, 99);
+            this.buttonDownloadLocation.Name = "buttonDownloadLocation";
+            this.buttonDownloadLocation.Size = new System.Drawing.Size(75, 23);
+            this.buttonDownloadLocation.TabIndex = 5;
+            this.buttonDownloadLocation.Text = "Browse";
+            this.buttonDownloadLocation.UseVisualStyleBackColor = true;
+            this.buttonDownloadLocation.Click += new System.EventHandler(this.buttonDownloadLocation_Click);
+            // 
+            // textBoxDownloadLocation
+            // 
+            this.textBoxDownloadLocation.Location = new System.Drawing.Point(113, 100);
+            this.textBoxDownloadLocation.Name = "textBoxDownloadLocation";
+            this.textBoxDownloadLocation.Size = new System.Drawing.Size(100, 20);
+            this.textBoxDownloadLocation.TabIndex = 4;
+            // 
+            // labelDownloadLocation
+            // 
+            this.labelDownloadLocation.AutoSize = true;
+            this.labelDownloadLocation.Location = new System.Drawing.Point(5, 103);
+            this.labelDownloadLocation.Name = "labelDownloadLocation";
+            this.labelDownloadLocation.Size = new System.Drawing.Size(102, 13);
+            this.labelDownloadLocation.TabIndex = 3;
+            this.labelDownloadLocation.Text = "Download Location:";
             // 
             // buttonRequest
             // 
@@ -462,37 +492,31 @@
             this.labelRequestFileName.Text = "File Name:";
             this.labelRequestFileName.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // labelDownloadLocation
+            // buttonAccept
             // 
-            this.labelDownloadLocation.AutoSize = true;
-            this.labelDownloadLocation.Location = new System.Drawing.Point(5, 103);
-            this.labelDownloadLocation.Name = "labelDownloadLocation";
-            this.labelDownloadLocation.Size = new System.Drawing.Size(102, 13);
-            this.labelDownloadLocation.TabIndex = 3;
-            this.labelDownloadLocation.Text = "Download Location:";
+            this.buttonAccept.Location = new System.Drawing.Point(73, 128);
+            this.buttonAccept.Name = "buttonAccept";
+            this.buttonAccept.Size = new System.Drawing.Size(75, 23);
+            this.buttonAccept.TabIndex = 6;
+            this.buttonAccept.Text = "Accept";
+            this.buttonAccept.UseVisualStyleBackColor = true;
+            this.buttonAccept.Click += new System.EventHandler(this.buttonAccept_Click);
             // 
-            // textBoxDownloadLocation
+            // buttonReject
             // 
-            this.textBoxDownloadLocation.Location = new System.Drawing.Point(113, 100);
-            this.textBoxDownloadLocation.Name = "textBoxDownloadLocation";
-            this.textBoxDownloadLocation.Size = new System.Drawing.Size(100, 20);
-            this.textBoxDownloadLocation.TabIndex = 4;
-            // 
-            // buttonDownloadLocation
-            // 
-            this.buttonDownloadLocation.Location = new System.Drawing.Point(219, 99);
-            this.buttonDownloadLocation.Name = "buttonDownloadLocation";
-            this.buttonDownloadLocation.Size = new System.Drawing.Size(75, 23);
-            this.buttonDownloadLocation.TabIndex = 5;
-            this.buttonDownloadLocation.Text = "Browse";
-            this.buttonDownloadLocation.UseVisualStyleBackColor = true;
-            this.buttonDownloadLocation.Click += new System.EventHandler(this.buttonDownloadLocation_Click);
+            this.buttonReject.Location = new System.Drawing.Point(172, 128);
+            this.buttonReject.Name = "buttonReject";
+            this.buttonReject.Size = new System.Drawing.Size(75, 23);
+            this.buttonReject.TabIndex = 7;
+            this.buttonReject.Text = "Reject";
+            this.buttonReject.UseVisualStyleBackColor = true;
+            this.buttonReject.Click += new System.EventHandler(this.buttonReject_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(638, 542);
+            this.ClientSize = new System.Drawing.Size(636, 559);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.button_Upload);
             this.Controls.Add(this.clientPrivText);
@@ -564,6 +588,8 @@
         private System.Windows.Forms.Button buttonDownloadLocation;
         private System.Windows.Forms.TextBox textBoxDownloadLocation;
         private System.Windows.Forms.Label labelDownloadLocation;
+        private System.Windows.Forms.Button buttonReject;
+        private System.Windows.Forms.Button buttonAccept;
     }
 }
 

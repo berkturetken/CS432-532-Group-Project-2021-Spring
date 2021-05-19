@@ -41,6 +41,8 @@ namespace Client
         private string keyLocationPath = "";
         private string downloadPath = "";
         private string tempFileName = "";
+        private string globalRequestedFileName = "";
+        private string globalRequesterPublicKey = "";
 
         public Form1()
         {
@@ -56,6 +58,8 @@ namespace Client
             button_disconnect.Enabled = false;
             browseKeylocation.Enabled = false;
             button_Upload.Enabled = false;
+            buttonAccept.Enabled = false;
+            buttonReject.Enabled = false;
         }
 
         private void Receive()
@@ -232,11 +236,37 @@ namespace Client
                                 richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
                                 //byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
                                 //string ciphertext = Encoding.Default.GetString(ciphertextBytes);
-                                byte[] key = extractKeyFromFile();
-                                byte[] IV = extractIVFromFile();
+                                byte[] key = extractKeyFromFile(textBoxRequestFileName.Text);
+                                byte[] IV = extractIVFromFile(textBoxRequestFileName.Text);
                                 byte[] plaintextBytes = decryptWithAES256HexVersion(ciphertextHex, key, IV, "CBC");
-                                string originalFileName = extractOriginalFileNameFromFile();
+                                string originalFileName = extractOriginalFileNameFromFile(textBoxRequestFileName.Text);
                                 saveFile(originalFileName, Encoding.Default.GetString(plaintextBytes));
+                            }
+                        }
+                        else if(msg.msgCode == MessageCodes.RequesterInfo)
+                        {
+                            string actualMessage = msg.message.Substring(0, msg.message.Length - 128);
+                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
+                            string HMACHex = msg.message.Substring(msg.message.Length - 128);
+                            bool isVerified = verifyHmac(HMACHex, actualMessage);
+                            if (!isVerified)
+                            {
+                                string failureMsg = generateFailureMessage("Signature is not verified!", "DownloadRequest");
+                                send_message(failureMsg, "DownloadRequest", MessageCodes.ErrorResponse);
+                            }
+                            else
+                            {
+                                disableAll();
+                                CommunicationMessage actualMessageJSON = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
+                                string requesterInfo = actualMessageJSON.message;
+                                RequesterInfo requesterInfoJSON = JsonConvert.DeserializeObject<RequesterInfo>(requesterInfo);
+                                string requesterUsername = requesterInfoJSON.requesterUsername;
+                                string requestedFileName = requesterInfoJSON.filename;
+                                string requesterPublicKey = requesterInfoJSON.requesterPublicKey;
+                                globalRequestedFileName = requestedFileName;
+                                globalRequesterPublicKey = requesterPublicKey;
+                                richTextBox1.AppendText(requesterUsername + " - " + requestedFileName + " - " + requesterPublicKey + "\n");
+                                richTextBox1.AppendText(requesterUsername + " requests download permission for " + requestedFileName + "\n");
                             }
                         }
                     }
@@ -269,15 +299,60 @@ namespace Client
         /***** HELPER FUNCTIONS *****/
         // Button defaults when the connection is closed
 
+        public void disableAll()
+        {
+            button_disconnect.Enabled = false;
+            serverPubKey.Enabled = false;
+            clientPublicKey.Enabled = false;
+            clientPrivateKey.Enabled = false;
+            browseKeylocation.Enabled = false;
+            button_Upload.Enabled = false;
+            button_send.Enabled = false;
+            buttonRequest.Enabled = false;
+            buttonDownloadLocation.Enabled = false;
+            buttonAccept.Enabled = true;
+            buttonReject.Enabled = true;
+        }
+
+        public void enableAll()
+        {
+            button_disconnect.Enabled = true;
+            serverPubKey.Enabled = true;
+            clientPublicKey.Enabled = true;
+            clientPrivateKey.Enabled = true;
+            browseKeylocation.Enabled = true;
+            button_Upload.Enabled = true;
+            button_send.Enabled = true;
+            buttonRequest.Enabled = true;
+            buttonDownloadLocation.Enabled = true;
+            buttonAccept.Enabled = false;
+            buttonReject.Enabled = false;
+        }
+
+        public string generateFailureMessage(string failureMessage, string failureTopic)
+        {
+            richTextBox1.AppendText(failureMessage + "\n");
+            CommunicationMessage msg = new CommunicationMessage();
+            msg.topic = failureTopic;
+            msg.message = failureMessage;
+            msg.msgCode = MessageCodes.ErrorResponse;
+            string negativeAckJSON = JsonConvert.SerializeObject(msg);
+            byte[] signedNegativeAck = signWithRSA(negativeAckJSON, 4096, UserPrivateKey);
+            string hexSignedNegativeAck = generateHexStringFromByteArray(signedNegativeAck);
+
+            string messageWithSignature = negativeAckJSON + hexSignedNegativeAck;
+            return messageWithSignature;
+        }
+
         private void saveFile(string fileName, string data)
         {
             string path = downloadPath + "\\" + fileName;
             File.AppendAllText(path, data);
         }
 
-        private string extractOriginalFileNameFromFile()
+        private string extractOriginalFileNameFromFile(string reqFileName)
         {
-            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            string filePath = keyLocationPath + "\\keys_" + reqFileName + ".txt";
             string fileName = "";
             using (var file = File.OpenRead(filePath))
             {
@@ -291,9 +366,9 @@ namespace Client
             return fileName;
         }
 
-        private byte[] extractKeyFromFile()
+        private byte[] extractKeyFromFile(string fileName)
         {
-            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            string filePath = keyLocationPath + "\\keys_" + fileName + ".txt";
             string key = "";
             using (var file = File.OpenRead(filePath))
             {
@@ -307,9 +382,9 @@ namespace Client
             return hexStringToByteArray(key);
         }
 
-        private byte[] extractIVFromFile()
+        private byte[] extractIVFromFile(string fileName)
         {
-            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            string filePath = keyLocationPath + "\\keys_" + fileName + ".txt";
             string IV = "";
             using (var file = File.OpenRead(filePath))
             {
@@ -348,7 +423,8 @@ namespace Client
             byte[] hmac_message = applyHMACwithSHA512(message, key_bytes);
 
             string hmac = generateHexStringFromByteArray(hmac_message);
-
+            richTextBox1.AppendText("hmac: " + hmac + "\n");
+            richTextBox1.AppendText("signature:" + signature + "\n");
             if (hmac == signature)
                 return true;
             return false;
@@ -363,6 +439,7 @@ namespace Client
             msg.message = message;
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
+            richTextBox1.AppendText("Length of sent message: " + jsonObject.Length + "\n");
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
             serverSocket.Send(buffer);
         }
@@ -717,6 +794,51 @@ namespace Client
             string message = requestedFileName + Encoding.Default.GetString(requestedFileNameSignature);
             string messageHex = generateHexStringFromByteArray(Encoding.Default.GetBytes(message));
             send_message(messageHex, "DownloadRequest", MessageCodes.DownloadRequest);
+        }
+
+        private void buttonAccept_Click(object sender, EventArgs e)
+        {
+            string key = generateHexStringFromByteArray(extractKeyFromFile(globalRequestedFileName));
+            string IV = generateHexStringFromByteArray(extractIVFromFile(globalRequestedFileName));
+            string originalFileName = extractOriginalFileNameFromFile(globalRequestedFileName);
+            ClassifiedInfo classifiedInfoJSON = new ClassifiedInfo
+            {
+                key = key,
+                IV = IV,
+                originalFileName = originalFileName
+            };
+
+            string classifiedInfo = JsonConvert.SerializeObject(classifiedInfoJSON);
+            byte[] ciphertextBytes = encryptWithRSA(classifiedInfo, 4096, globalRequesterPublicKey);
+            string ciphertextHex = generateHexStringFromByteArray(ciphertextBytes);
+            CommunicationMessage commMsgJSON = new CommunicationMessage
+            {
+                topic = "DownloadRequest",
+                msgCode = MessageCodes.SuccessfulResponse,
+                message = ciphertextHex
+            };
+            string commMsg = JsonConvert.SerializeObject(commMsgJSON);
+            byte[] hmacBytes = applyHMACwithSHA512(commMsg, Encoding.Default.GetBytes(SessionKey));
+            string hmacHex = generateHexStringFromByteArray(hmacBytes);
+            string finalMessage = commMsg + hmacHex;
+            send_message(finalMessage, "DownloadRequest", MessageCodes.SuccessfulResponse);
+            enableAll();
+        }
+
+        private void buttonReject_Click(object sender, EventArgs e)
+        {
+            CommunicationMessage msgJSON = new CommunicationMessage
+            {
+                topic = "DownloadRequest",
+                msgCode = MessageCodes.ErrorResponse,
+                message = "Request rejected!"
+            };
+
+            string msg = JsonConvert.SerializeObject(msgJSON);
+            byte[] hmacBytes = applyHMACwithSHA512(msg, Encoding.Default.GetBytes(SessionKey));
+            string finalMessage = msg + generateHexStringFromByteArray(hmacBytes);
+            send_message(finalMessage, "DownloadRequest", MessageCodes.ErrorResponse);
+            enableAll();
         }
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
