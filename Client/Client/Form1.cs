@@ -39,6 +39,7 @@ namespace Client
         private string tempHexaAES256Key = "";
         private string tempHexaAES256IV = "";
         private string keyLocationPath = "";
+        private string downloadPath = "";
         private string tempFileName = "";
 
         public Form1()
@@ -194,10 +195,7 @@ namespace Client
                         {
                             string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
                             string signatureHex = msg.message.Substring(msg.message.Length - 1024);
-                            richTextBox1.AppendText("Signature in hex: " + signatureHex + "\n");
                             byte[] signatureBytes = hexStringToByteArray(signatureHex);
-
-                            richTextBox1.AppendText("Actual message: " + actualMessage + "\n");
 
                             bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
 
@@ -209,6 +207,33 @@ namespace Client
                             else
                             {
                                 richTextBox1.AppendText("Could not verify the message from server!\n");
+                            }
+                        }
+                        else if(msg.msgCode == MessageCodes.DownloadRequest) //If the requested file belongs to us
+                        {
+                            string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
+                            string signatureHex = msg.message.Substring(msg.message.Length - 1024);
+                            byte[] signatureBytes = hexStringToByteArray(signatureHex);
+
+                            CommunicationMessage inMsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
+                            string incomingData = inMsg.message;
+                            UploadMessage inData = JsonConvert.DeserializeObject<UploadMessage>(incomingData);
+
+                            bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
+                            if (!isVerified)
+                            {
+                                richTextBox1.AppendText("Could not verify the message from server!\n");
+                            }
+                            else
+                            {
+                                string ciphertextHex = inData.message;
+                                byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
+                                string ciphertext = Encoding.Default.GetString(ciphertextBytes);
+                                byte[] key = extractKeyFromFile();
+                                byte[] IV = extractIVFromFile();
+                                byte[] plaintextBytes = decryptWithAES256(ciphertext, key, IV);
+                                string originalFileName = extractOriginalFileNameFromFile();
+                                saveFile(originalFileName, Encoding.Default.GetString(plaintextBytes));
                             }
                         }
                     }
@@ -241,6 +266,49 @@ namespace Client
 
         /***** HELPER FUNCTIONS *****/
         // Button defaults when the connection is closed
+
+        private void saveFile(string fileName, string data)
+        {
+            string path = downloadPath + "\\" + fileName;
+            File.AppendAllText(path, data);
+        }
+
+        private string extractOriginalFileNameFromFile()
+        {
+            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            FileStream file = File.OpenRead(filePath);
+            byte[] content = new byte[256];
+            file.Read(content, 0, content.Length);
+            string contentStr = Encoding.Default.GetString(content);
+            string fileName = contentStr.Substring(0, contentStr.IndexOf('-'));
+            richTextBox1.AppendText("Original file name: " + fileName + "\n");
+            return fileName;
+        }
+
+        private byte[] extractKeyFromFile()
+        {
+            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            FileStream file = File.OpenRead(filePath);
+            byte[] content = new byte[256];
+            file.Read(content, 0, content.Length);
+            string contentStr = Encoding.Default.GetString(content);
+            string key = contentStr.Substring(contentStr.Length - 97, 64);
+            richTextBox1.AppendText("AES key: " + key + "\n");
+            return hexStringToByteArray(key);
+        }
+
+        private byte[] extractIVFromFile()
+        {
+            string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
+            FileStream file = File.OpenRead(filePath);
+            byte[] content = new byte[256];
+            file.Read(content, 0, content.Length);
+            string contentStr = Encoding.Default.GetString(content);
+            string IV = contentStr.Substring(contentStr.Length - 32);
+            richTextBox1.AppendText("AES IV: " + IV + "\n");
+            return hexStringToByteArray(IV);
+        }
+
         private void connectionClosedButtons()
         {
             authenticated = false;
@@ -308,8 +376,8 @@ namespace Client
 
         public void saveToKeys(string originalFileName, string storedFileName)
         {
-            string keyPath = keyLocationPath + "\\keys_" + name + ".txt";
-            string line = originalFileName + "-" + storedFileName + "-" + tempHexaAES256Key + "-" + tempHexaAES256IV + "\n";
+            string keyPath = keyLocationPath + "\\keys_" + storedFileName + ".txt";
+            string line = originalFileName + "-" + tempHexaAES256Key + "-" + tempHexaAES256IV + "\n";
             File.AppendAllText(keyPath, line);
         }
 
@@ -554,19 +622,24 @@ namespace Client
                     var sendBuffer = new byte[2048];
                     var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                     int count = 1;
+
+
+                    string key = randomNumberGenerator(32);
+                    byte[] byteKey = Encoding.Default.GetBytes(key);
+                    string IV = randomNumberGenerator(16);
+                    byte[] byteIV = Encoding.Default.GetBytes(IV);
+                    string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
+
+                    tempHexaAES256IV = generateHexStringFromByteArray(byteIV);
+                    tempHexaAES256Key = generateHexStringFromByteArray(byteKey);
+
+
                     while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0 && canContinue)
                     {
 
                         var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
 
-                        string key = randomNumberGenerator(32);
-                        byte[] byteKey = Encoding.Default.GetBytes(key);
-                        string IV = randomNumberGenerator(16);
-                        byte[] byteIV = Encoding.Default.GetBytes(IV);
-                        string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
-
-                        tempHexaAES256IV = generateHexStringFromByteArray(byteIV);
-                        tempHexaAES256Key = generateHexStringFromByteArray(byteKey);
+                        
 
                         byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
                         string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
@@ -618,7 +691,16 @@ namespace Client
                 keyLocation_text.Text = onlyFolderName;
             }
         }
-
+        private void buttonDownloadLocation_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                downloadPath = fbd.SelectedPath;
+                string onlyFolderName = downloadPath.Substring(downloadPath.LastIndexOf('\\') + 1);
+                textBoxDownloadLocation.Text = onlyFolderName;
+            }
+        }
         private void buttonRequest_Click(object sender, EventArgs e)
         {
             string requestedFileName = textBoxRequestFileName.Text;
