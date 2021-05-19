@@ -231,12 +231,19 @@ namespace Client
                                 string ciphertextHex = inData.message;
                                 richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
                                 byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
+                                richTextBox1.AppendText("a\n");
                                 string ciphertext = Encoding.Default.GetString(ciphertextBytes);
+                                richTextBox1.AppendText("b\n");
                                 byte[] key = extractKeyFromFile();
+                                richTextBox1.AppendText("c\n");
                                 byte[] IV = extractIVFromFile();
+                                richTextBox1.AppendText("d\n");
                                 byte[] plaintextBytes = decryptWithAES256(ciphertext, key, IV);
+                                richTextBox1.AppendText("e\n");
                                 string originalFileName = extractOriginalFileNameFromFile();
+                                richTextBox1.AppendText("f\n");
                                 saveFile(originalFileName, Encoding.Default.GetString(plaintextBytes));
+                                richTextBox1.AppendText("g\n");
                             }
                         }
                     }
@@ -279,11 +286,15 @@ namespace Client
         private string extractOriginalFileNameFromFile()
         {
             string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
-            FileStream file = File.OpenRead(filePath);
-            byte[] content = new byte[256];
-            file.Read(content, 0, content.Length);
-            string contentStr = Encoding.Default.GetString(content);
-            string fileName = contentStr.Substring(0, contentStr.IndexOf('-'));
+            string fileName = "";
+            using (var file = File.OpenRead(filePath))
+            {
+                byte[] content = new byte[256];
+                file.Read(content, 0, content.Length);
+                string contentStr = Encoding.Default.GetString(content).Trim('\0');
+                string[] elements = contentStr.Split('-');
+                fileName = elements[0];
+            }
             richTextBox1.AppendText("Original file name: " + fileName + "\n");
             return fileName;
         }
@@ -291,11 +302,17 @@ namespace Client
         private byte[] extractKeyFromFile()
         {
             string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
-            FileStream file = File.OpenRead(filePath);
-            byte[] content = new byte[256];
-            file.Read(content, 0, content.Length);
-            string contentStr = Encoding.Default.GetString(content);
-            string key = contentStr.Substring(contentStr.Length - 97, 64);
+            string key = "";
+            using (var file = File.OpenRead(filePath))
+            {
+                byte[] content = new byte[256];
+                richTextBox1.AppendText("key1");
+                file.Read(content, 0, content.Length);
+                richTextBox1.AppendText("key2");
+                string contentStr = Encoding.Default.GetString(content).Trim('\0');
+                string[] elements = contentStr.Split('-');
+                key = elements[1];
+            }
             richTextBox1.AppendText("AES key: " + key + "\n");
             return hexStringToByteArray(key);
         }
@@ -303,11 +320,16 @@ namespace Client
         private byte[] extractIVFromFile()
         {
             string filePath = keyLocationPath + "\\keys_" + textBoxRequestFileName.Text + ".txt";
-            FileStream file = File.OpenRead(filePath);
-            byte[] content = new byte[256];
-            file.Read(content, 0, content.Length);
-            string contentStr = Encoding.Default.GetString(content);
-            string IV = contentStr.Substring(contentStr.Length - 32);
+            string IV = "";
+            using (var file = File.OpenRead(filePath))
+            {
+                byte[] content = new byte[256];
+                file.Read(content, 0, content.Length);
+                string contentStr = Encoding.Default.GetString(content).Trim('\0');
+                string[] elements = contentStr.Split('-');
+                IV = elements[2];
+                IV = IV.Substring(0, 32);
+            }
             richTextBox1.AppendText("AES IV: " + IV + "\n");
             return hexStringToByteArray(IV);
         }
@@ -379,7 +401,7 @@ namespace Client
 
         public void saveToKeys(string originalFileName, string storedFileName)
         {
-            string keyPath = keyLocationPath + "\\keys_" + storedFileName + ".txt";
+            string keyPath = keyLocationPath + "\\keys_" + storedFileName;
             string line = originalFileName + "-" + tempHexaAES256Key + "-" + tempHexaAES256IV + "\n";
             File.AppendAllText(keyPath, line);
         }
@@ -710,8 +732,6 @@ namespace Client
             byte[] requestedFileNameSignature = signWithRSA(requestedFileName, 4096, UserPrivateKey);
             string message = requestedFileName + Encoding.Default.GetString(requestedFileNameSignature);
             string messageHex = generateHexStringFromByteArray(Encoding.Default.GetBytes(message));
-            richTextBox1.AppendText("Download Request: " + messageHex + "\n");
-            richTextBox1.AppendText("Length of the message: " + messageHex.Length + "\n");
             send_message(messageHex, "DownloadRequest", MessageCodes.DownloadRequest);
         }
 

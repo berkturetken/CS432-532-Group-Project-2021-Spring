@@ -407,15 +407,12 @@ namespace Secure_Server
                     }
                     
                     richTextBox_ConsoleOut.AppendText("Sending packet " + count + "\n");
-                    richTextBox_ConsoleOut.AppendText("Read data:" + sentData + Environment.NewLine);
                     richTextBox_ConsoleOut.AppendText("Sent message size :" + sentData.Length + "\n");
                     string sentDataJson = createCommunicationMessage(MessageCodes.SuccessfulResponse, "DownloadRequest", sentData);
-                    richTextBox_ConsoleOut.AppendText("Data with comm Msg:" + sentDataJson + Environment.NewLine);
                     byte[] sentDataJsonSignature = signWithRSA(sentDataJson, 4096, serverPrivateKey);
                     string finalMessage = sentDataJson + generateHexStringFromByteArray(sentDataJsonSignature);
                     string finalMessageJson = createCommunicationMessage(MessageCodes.OwnFileSuccessfulDownload, "DownloadRequest", finalMessage);
                     richTextBox_ConsoleOut.AppendText("Length of Final Message: " + finalMessageJson.Length + "\n");
-                    richTextBox_ConsoleOut.AppendText("Final Message: " + finalMessageJson + Environment.NewLine);
                     sendMessage(s, finalMessageJson);
                     count++;
                     Thread.Sleep(1000);
