@@ -325,7 +325,7 @@ namespace Secure_Server
                                 }
                                 else
                                 {
-                                    // User requests one of his/her [:)] own file
+                                    // User requests one of his/her ( :) ) own file
                                     if (requestedFileOwner == username)
                                     {
                                         string filePath = folderPath + "\\" + requestedFileName + ".txt";
@@ -335,6 +335,19 @@ namespace Secure_Server
                                     // User requests someone else's file
                                     else
                                     {
+                                        RequesterInfo requesterInfo = new RequesterInfo
+                                        {
+                                            filename = requestedFileName,
+                                            requesterUsername = username,
+                                            requesterPublicKey = userPubKeys[username]
+                                        };
+                                        string requesterInfoJSON = JsonConvert.SerializeObject(requesterInfo);
+                                        string commMsgRequesterInfo = createCommunicationMessage(MessageCodes.RequesterInfo, "DownloadRequest", requesterInfoJSON);
+                                        byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[username]);
+                                        byte[] hmacBytes = applyHMACwithSHA512(commMsgRequesterInfo, HMACKey);
+                                        string finalMessage = commMsgRequesterInfo + generateHexStringFromByteArray(hmacBytes);
+                                        richTextBox_ConsoleOut.AppendText("[Someone else's file] Final message len: " + finalMessage.Length + "\n");
+                                        sendMessage(s, finalMessage);
                                     }
                                 } 
                             }   

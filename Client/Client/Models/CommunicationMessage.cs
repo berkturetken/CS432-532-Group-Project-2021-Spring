@@ -15,13 +15,21 @@ namespace Client.Models
         UploadRequest,
         DownloadRequest,
         OwnFileSuccessfulDownload,
-        OtherFileSuccessfulDownload
+        OtherFileSuccessfulDownload,
+        RequesterInfo
     }
 
     public class UploadMessage
     {
         public string message;
         public bool lastPacket;
+    }
+
+    public class RequesterInfo
+    {
+        public string filename;
+        public string requesterUsername;
+        public string requesterPublicKey;
     }
 
     public class CommunicationMessage
