@@ -231,23 +231,15 @@ namespace Client
                                 string ciphertextHex = inData.message;
                                 richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
                                 //byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
-                                richTextBox1.AppendText("a\n");
                                 //string ciphertext = Encoding.Default.GetString(ciphertextBytes);
-                                richTextBox1.AppendText("b\n");
                                 byte[] key = extractKeyFromFile();
-                                richTextBox1.AppendText("c\n");
                                 byte[] IV = extractIVFromFile();
-                                richTextBox1.AppendText("d\n");
                                 byte[] plaintextBytes = decryptWithAES256HexVersion(ciphertextHex, key, IV, "CBC");
-                                richTextBox1.AppendText("e\n");
                                 string originalFileName = extractOriginalFileNameFromFile();
-                                richTextBox1.AppendText("f\n");
                                 saveFile(originalFileName, Encoding.Default.GetString(plaintextBytes));
-                                richTextBox1.AppendText("g\n");
                             }
                         }
                     }
-                    
                 }
                 catch
                 {
@@ -280,10 +272,7 @@ namespace Client
         private void saveFile(string fileName, string data)
         {
             string path = downloadPath + "\\" + fileName;
-            richTextBox1.AppendText("[saveFile]DownloadPath: " + downloadPath + "\n");
-            richTextBox1.AppendText("[saveFile]File Name: " + fileName + "\n");
             File.AppendAllText(path, data);
-            richTextBox1.AppendText("saveFileend\n");
         }
 
         private string extractOriginalFileNameFromFile()
@@ -635,38 +624,31 @@ namespace Client
             }
         }
 
-        // Will change!
         private void button_send_Click(object sender, EventArgs e)
         {
             if (authenticated)
             {
                 using (var file = File.OpenRead(uploadPath)) //opening the file
                 {
-
                     var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
 
                     var sendBuffer = new byte[2048];
                     var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                     int count = 1;
 
-
                     string key = randomNumberGenerator(32);
                     byte[] byteKey = Encoding.Default.GetBytes(key);
                     string IV = randomNumberGenerator(16);
                     byte[] byteIV = Encoding.Default.GetBytes(IV);
-                    
 
                     tempHexaAES256IV = generateHexStringFromByteArray(byteIV);
                     tempHexaAES256Key = generateHexStringFromByteArray(byteKey);
-
-
+                    
                     while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0 && canContinue)
                     {
-
                         var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
                         string StringSendBuffer = Encoding.Default.GetString(sendBuffer).Trim('\0');
                         richTextBox1.AppendText("stringSendBufferLen: " + StringSendBuffer.Length + "\n");
-
 
                         byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
                         string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
@@ -697,10 +679,7 @@ namespace Client
                         count++;
                         Array.Clear(sendBuffer, 0, 2048);
                         Thread.Sleep(1000);
-
                     }
-
-
                 }
             }
             else

@@ -380,7 +380,7 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[4096];
+                var sendBuffer = new byte[4128];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
