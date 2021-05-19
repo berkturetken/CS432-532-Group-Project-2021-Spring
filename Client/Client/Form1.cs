@@ -150,7 +150,7 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(2048); // We may need to increase the size since it is a general recieve function
+                    CommunicationMessage msg = receiveMessage(8192); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
@@ -209,14 +209,16 @@ namespace Client
                                 richTextBox1.AppendText("Could not verify the message from server!\n");
                             }
                         }
-                        else if(msg.msgCode == MessageCodes.DownloadRequest) //If the requested file belongs to us
+                        else if(msg.msgCode == MessageCodes.OwnFileSuccessfulDownload) //If the requested file belongs to us
                         {
                             string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
+                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
                             string signatureHex = msg.message.Substring(msg.message.Length - 1024);
                             byte[] signatureBytes = hexStringToByteArray(signatureHex);
 
                             CommunicationMessage inMsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
                             string incomingData = inMsg.message;
+                            richTextBox1.AppendText("IncomingData: " + incomingData + "\n");
                             UploadMessage inData = JsonConvert.DeserializeObject<UploadMessage>(incomingData);
 
                             bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
@@ -227,6 +229,7 @@ namespace Client
                             else
                             {
                                 string ciphertextHex = inData.message;
+                                richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
                                 byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
                                 string ciphertext = Encoding.Default.GetString(ciphertextBytes);
                                 byte[] key = extractKeyFromFile();
