@@ -230,15 +230,15 @@ namespace Client
                             {
                                 string ciphertextHex = inData.message;
                                 richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
-                                byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
+                                //byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
                                 richTextBox1.AppendText("a\n");
-                                string ciphertext = Encoding.Default.GetString(ciphertextBytes);
+                                //string ciphertext = Encoding.Default.GetString(ciphertextBytes);
                                 richTextBox1.AppendText("b\n");
                                 byte[] key = extractKeyFromFile();
                                 richTextBox1.AppendText("c\n");
                                 byte[] IV = extractIVFromFile();
                                 richTextBox1.AppendText("d\n");
-                                byte[] plaintextBytes = decryptWithAES256(ciphertext, key, IV);
+                                byte[] plaintextBytes = decryptWithAES256HexVersion(ciphertextHex, key, IV, "CBC");
                                 richTextBox1.AppendText("e\n");
                                 string originalFileName = extractOriginalFileNameFromFile();
                                 richTextBox1.AppendText("f\n");
@@ -603,7 +603,7 @@ namespace Client
                     try
                     {
                         //Decrypt the Private Key using AES-256 
-                        byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV);
+                        byte[] decryptedPasswordBytes = decryptWithAES256HexVersion(UserEncryptedPrivateKey, AES256Key, AES256IV, "CFB");
                         UserPrivateKey = Encoding.Default.GetString(decryptedPasswordBytes);
                         string hexaPrivateKey = generateHexStringFromByteArray(decryptedPasswordBytes);
                         richTextBox1.AppendText("AES 256 Key: " + hexaDecimalAES256Key + "\n");
@@ -717,6 +717,7 @@ namespace Client
                 keyLocation_text.Text = onlyFolderName;
             }
         }
+
         private void buttonDownloadLocation_Click(object sender, EventArgs e)
         {
             FolderBrowserDialog fbd = new FolderBrowserDialog();
@@ -727,6 +728,7 @@ namespace Client
                 textBoxDownloadLocation.Text = onlyFolderName;
             }
         }
+
         private void buttonRequest_Click(object sender, EventArgs e)
         {
             string requestedFileName = textBoxRequestFileName.Text;
@@ -883,7 +885,7 @@ namespace Client
             // block size of AES is 128 bits
             aesObject.BlockSize = 128;
             // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
+            aesObject.Mode = CipherMode.CBC;
             // feedback size should be equal to block size
             aesObject.FeedbackSize = 128;
             // set the key
@@ -907,7 +909,7 @@ namespace Client
             return result;
         }
 
-        static byte[] decryptWithAES256HexVersion(string input, byte[] key, byte[] IV)
+        static byte[] decryptWithAES256HexVersion(string input, byte[] key, byte[] IV, string mode)
         {
             // convert input string to byte array
             byte[] byteInput = hexStringToByteArray(input);
@@ -918,8 +920,21 @@ namespace Client
             aesObject.KeySize = 256;
             // block size of AES is 128 bits
             aesObject.BlockSize = 128;
+            
             // mode -> CipherMode.*
-            aesObject.Mode = CipherMode.CFB;
+            // MODIFICATION!!!
+            // For upload & download
+            if (mode == "CBC")
+            {
+                aesObject.Mode = CipherMode.CBC;
+            }
+            // For password
+            else if (mode == "CFB")
+            {
+                aesObject.Mode = CipherMode.CFB;
+            }
+            // If you need another mode, add below!
+            
             // feedback size should be equal to block size
             aesObject.FeedbackSize = 128;
             // set the key
@@ -929,14 +944,13 @@ namespace Client
             // create an encryptor with the settings provided
             ICryptoTransform decryptor = aesObject.CreateDecryptor();
             byte[] result = null;
-
+            
             try
             {
                 result = decryptor.TransformFinalBlock(byteInput, 0, byteInput.Length);
             }
             catch (Exception e) // if encryption fails
             {
-
                 Console.WriteLine(e.Message); // display the cause
             }
 
