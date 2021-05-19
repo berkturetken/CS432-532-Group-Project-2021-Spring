@@ -150,7 +150,7 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(4096); // We may need to increase the size since it is a general recieve function
+                    CommunicationMessage msg = receiveMessage(8192); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
@@ -654,7 +654,7 @@ namespace Client
                     byte[] byteKey = Encoding.Default.GetBytes(key);
                     string IV = randomNumberGenerator(16);
                     byte[] byteIV = Encoding.Default.GetBytes(IV);
-                    string StringSendBuffer = Encoding.Default.GetString(sendBuffer);
+                    
 
                     tempHexaAES256IV = generateHexStringFromByteArray(byteIV);
                     tempHexaAES256Key = generateHexStringFromByteArray(byteKey);
@@ -664,8 +664,9 @@ namespace Client
                     {
 
                         var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length); //read inside of the file(to sendBuffer)
+                        string StringSendBuffer = Encoding.Default.GetString(sendBuffer).Trim('\0');
+                        richTextBox1.AppendText("stringSendBufferLen: " + StringSendBuffer.Length + "\n");
 
-                        
 
                         byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
                         string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
@@ -694,6 +695,7 @@ namespace Client
                         richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
                         send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
                         count++;
+                        Array.Clear(sendBuffer, 0, 2048);
                         Thread.Sleep(1000);
 
                     }

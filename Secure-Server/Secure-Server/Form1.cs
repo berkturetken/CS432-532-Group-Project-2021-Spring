@@ -380,14 +380,14 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[2048];
+                var sendBuffer = new byte[4096];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
                 while (BitConverter.ToInt32(bytesLeftToTransmit, 0) > 0)
                 {
                     var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length);   // read inside of the file(to sendBuffer)
-                    string sendBufferInHexa = Encoding.Default.GetString(sendBuffer);
+                    string sendBufferInHexa = Encoding.Default.GetString(sendBuffer).Trim('\0');
                     richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
 
                     int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
@@ -415,6 +415,7 @@ namespace Secure_Server
                     richTextBox_ConsoleOut.AppendText("Length of Final Message: " + finalMessageJson.Length + "\n");
                     sendMessage(s, finalMessageJson);
                     count++;
+                    Array.Clear(sendBuffer, 0, sendBuffer.Length);
                     Thread.Sleep(1000);
                 }
                 richTextBox_ConsoleOut.AppendText("File transfer is done.\n");
