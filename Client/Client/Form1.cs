@@ -252,7 +252,7 @@ namespace Client
                             if (!isVerified)
                             {
                                 string failureMsg = generateFailureMessage("Signature is not verified!", "DownloadRequest");
-                                send_message(failureMsg, "DownloadRequest", MessageCodes.ErrorResponse);
+                                send_message(failureMsg, "NotVerified", MessageCodes.ErrorResponse);
                             }
                             else
                             {

@@ -19,10 +19,22 @@ namespace Secure_Server.Models
         RequesterInfo
     }
 
+    public class FileInformation
+    {
+        public string classifiedInfo;
+        public string file;
+    }
+
     public class UploadMessage
     {
         public string message;
         public bool lastPacket;
+    }
+    public class ClassifiedInfo
+    {
+        public string key;
+        public string IV;
+        public string originalFileName;
     }
 
     public class RequesterInfo
