@@ -269,6 +269,41 @@ namespace Client
                                 richTextBox1.AppendText(requesterUsername + " requests download permission for " + requestedFileName + "\n");
                             }
                         }
+                        else if(msg.msgCode == MessageCodes.OtherFileSuccessfulDownload)
+                        {
+                            string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
+                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
+                            string signatureHex = msg.message.Substring(msg.message.Length - 1024);
+                            byte[] signatureBytes = hexStringToByteArray(signatureHex);
+
+                            bool isVerified = verifyWithRSA(actualMessage, 4096, UserPrivateKey, signatureBytes);
+                            if (!isVerified)
+                            {
+                                richTextBox1.AppendText("Could not verify message from server! Download is cancelled.\n");
+                                connectionClosedButtons();
+                                serverSocket.Close();
+                                connected = false;
+                            }
+                            else
+                            {
+                                FileInformation fileInformation = JsonConvert.DeserializeObject<FileInformation>(actualMessage);
+                                string classifiedInfo = fileInformation.classifiedInfo;
+                                byte[] plaintextBytes = decryptWithRSA(classifiedInfo, 4096, UserPrivateKey);
+                                string plaintext = Encoding.Default.GetString(plaintextBytes);
+                                ClassifiedInfo classifiedInfoJSON = JsonConvert.DeserializeObject<ClassifiedInfo>(plaintext);
+                                string keyHex = classifiedInfoJSON.key;
+                                string IVHex = classifiedInfoJSON.IV;
+                                string originalFileName = classifiedInfoJSON.originalFileName;
+
+                                byte[] keyBytes = hexStringToByteArray(keyHex);
+                                byte[] IVBytes = hexStringToByteArray(IVHex);
+
+                                string fileCiphertextHex = fileInformation.file;
+                                byte[] filePlaintextBytes = decryptWithAES256HexVersion(fileCiphertextHex, keyBytes, IVBytes, "CBC");
+                                string filePlaintext = Encoding.Default.GetString(filePlaintextBytes);
+                                saveFile(originalFileName, filePlaintext);
+                            }
+                        }
                     }
                 }
                 catch

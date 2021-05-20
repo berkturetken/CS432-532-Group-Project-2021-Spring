@@ -19,6 +19,12 @@ namespace Client.Models
         RequesterInfo
     }
 
+    public class FileInformation
+    {
+        public string classifiedInfo;
+        public string file;
+    }
+
     public class UploadMessage
     {
         public string message;

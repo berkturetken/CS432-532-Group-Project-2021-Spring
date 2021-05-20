@@ -350,7 +350,9 @@ namespace Secure_Server
                                         richTextBox_ConsoleOut.AppendText("[Someone else's file] Final message len: " + finalMessage.Length + "\n");
                                         sendMessage(socketList[requestedFileOwner], finalMessage);
 
+                                        richTextBox_ConsoleOut.AppendText("file owner socket: " + socketList[requestedFileOwner] + "\n");
                                         CommunicationMessage responseCommMsg = receiveMessage(socketList[requestedFileOwner], 4352);
+                                        richTextBox_ConsoleOut.AppendText("I received\n");
                                         if (responseCommMsg.topic == "NotVerified")
                                         {
                                             string actualMessage = responseCommMsg.message;
@@ -390,6 +392,7 @@ namespace Secure_Server
                                                 }
                                                 else
                                                 {
+                                                    richTextBox_ConsoleOut.AppendText("owner rejected\n");
                                                     string ownerRejectMsg = generateFailureMessage("The owner rejected your request", "DownloadRequest");
                                                     sendMessage(s, ownerRejectMsg);
                                                 }
@@ -409,12 +412,14 @@ namespace Secure_Server
                                                 }
                                                 else
                                                 {
+                                                    richTextBox_ConsoleOut.AppendText("Sending classified info\n");
                                                     string filePath = folderPath + "\\" + requestedFileName + ".txt";
                                                     CommunicationMessage classifiedInfo = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
                                                     readFileAndSendWithKeyAndIV(s, filePath, classifiedInfo.message);
                                                 }
                                             }
                                         }
+                                        richTextBox_ConsoleOut.AppendText("I conquered\n");
                                     }
                                 } 
                             }   
@@ -496,7 +501,7 @@ namespace Secure_Server
                     string fileInformationJson = JsonConvert.SerializeObject(fileInformation);
                     byte[] fileInformationJsonSignature = signWithRSA(fileInformationJson, 4096, serverPrivateKey);
                     string finalMessage = fileInformationJson + generateHexStringFromByteArray(fileInformationJsonSignature);
-                    string finalMessageJson = createCommunicationMessage(MessageCodes.SuccessfulResponse, "DownloadRequest", finalMessage);
+                    string finalMessageJson = createCommunicationMessage(MessageCodes.OtherFileSuccessfulDownload, "DownloadRequest", finalMessage);
                     richTextBox_ConsoleOut.AppendText("[Someone else's file] Length of Final Message: " + finalMessageJson.Length + "\n");
                     sendMessage(s, finalMessageJson);
                     count++;
@@ -672,10 +677,13 @@ namespace Secure_Server
 
         CommunicationMessage receiveMessage(Socket s, int size)
         {
+            richTextBox_ConsoleOut.AppendText("a\n");
             Byte[] incomingByteArray = new Byte[size];
             s.Receive(incomingByteArray);
+            richTextBox_ConsoleOut.AppendText("b\n");
             string inMessage = Encoding.Default.GetString(incomingByteArray).Trim('\0');
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
+            richTextBox_ConsoleOut.AppendText("c\n");
             return msg;
         }
 
