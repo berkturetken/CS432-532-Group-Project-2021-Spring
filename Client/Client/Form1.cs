@@ -43,7 +43,8 @@ namespace Client
         private string tempFileName = "";
         private string globalRequestedFileName = "";
         private string globalRequesterPublicKey = "";
-        int bufferSize = 1048576;       // 1 mb = 1024 kb = 1.048.576 b
+        int bufferSize = 2101248;           // 2.097.152 + 4096 = 2.101.248 b
+        int fileBufferSize = 2097152;       // 2 mb = 2048 kb = 2.097.152 b
 
         public Form1()
         {
@@ -159,7 +160,8 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(bufferSize); // We may need to increase the size since it is a general recieve function
+                    int adjustedBufferSize = bufferSize * 2;
+                    CommunicationMessage msg = receiveMessage(adjustedBufferSize); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
@@ -769,7 +771,7 @@ namespace Client
                 {
                     var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
 
-                    var sendBuffer = new byte[bufferSize];
+                    var sendBuffer = new byte[fileBufferSize];
                     var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                     int count = 1;
 
@@ -815,8 +817,8 @@ namespace Client
                         richTextBox1.AppendText("Sent message size :" + (jsonUpload + stringHMAC).Length + "\n");
                         send_message(jsonUpload + stringHMAC, "Upload", MessageCodes.UploadRequest);
                         count++;
-                        Array.Clear(sendBuffer, 0, 2048);
-                        Thread.Sleep(1000);
+                        Array.Clear(sendBuffer, 0, sendBuffer.Length);
+                        Thread.Sleep(500);
                     }
                 }
             }

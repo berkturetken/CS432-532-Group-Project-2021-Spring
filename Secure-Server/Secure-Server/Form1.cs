@@ -33,7 +33,8 @@ namespace Secure_Server
         string globalRequestedFileOwner = "";
         string globalRequestedFileName = "";
         string globalRequesterUsename = "";
-        int bufferSize = 2098176;   // 2 mb = 2048 kb = 2.097.152 + 1024 bytes = 2.098.176 bytes
+        int bufferSize = 4196352;   // 4 mb = 4096 kb = 4.194.304 + 2048 bytes = 4.196.352 bytes
+        int fileBufferSize = 4194336;   // +32
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
         Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();     // Session keys
@@ -554,7 +555,7 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[bufferSize];
+                var sendBuffer = new byte[fileBufferSize];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
@@ -596,7 +597,7 @@ namespace Secure_Server
                     sendMessage(s, finalMessageJson);
                     count++;
                     Array.Clear(sendBuffer, 0, sendBuffer.Length);
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                 }
                 richTextBox_ConsoleOut.AppendText("File transfer is done.\n");
             }
@@ -608,7 +609,7 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[bufferSize];
+                var sendBuffer = new byte[fileBufferSize];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
@@ -645,7 +646,7 @@ namespace Secure_Server
                     sendMessage(s, finalMessageJson);
                     count++;
                     Array.Clear(sendBuffer, 0, sendBuffer.Length);
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                 }
                 richTextBox_ConsoleOut.AppendText("File transfer is done.\n");
             }
