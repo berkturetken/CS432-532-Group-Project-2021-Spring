@@ -45,6 +45,7 @@ namespace Client
         private string globalRequesterPublicKey = "";
         int bufferSize = 2101248;           // 2.097.152 + 4096 = 2.101.248 b
         int fileBufferSize = 2097152;       // 2 mb = 2048 kb = 2.097.152 b
+        int packetCount = 0;
 
         public Form1()
         {
@@ -304,8 +305,8 @@ namespace Client
                                 string classifiedInfo = Encoding.Default.GetString(classifiedInfoBytes);
                                 byte[] plaintextBytes = decryptWithRSA(classifiedInfo, 4096, UserPrivateKey);
                                 string plaintext = Encoding.Default.GetString(plaintextBytes);
-                                richTextBox1.AppendText("Classified Info: " + plaintext + "\n");
-                                richTextBox1.AppendText("The owner accepts your request. You can find the file in your download location!\n");
+                                //richTextBox1.AppendText("Classified Info: " + plaintext + "\n");
+                                //richTextBox1.AppendText("The owner accepts your request. You can find the file in your download location!\n");
                                 ClassifiedInfo classifiedInfoJSON = JsonConvert.DeserializeObject<ClassifiedInfo>(plaintext);
                                 string keyHex = classifiedInfoJSON.key;
                                 string IVHex = classifiedInfoJSON.IV;
@@ -315,6 +316,22 @@ namespace Client
                                 byte[] IVBytes = hexStringToByteArray(IVHex);
 
                                 UploadMessage upMsg = JsonConvert.DeserializeObject<UploadMessage>(fileInformation.file);
+
+                                if(packetCount == 0)
+                                {
+                                    richTextBox1.AppendText("The owner accepted your request. Download in progress...");
+                                    packetCount++;
+                                }
+                                
+                                if (upMsg.lastPacket)
+                                {
+                                    richTextBox1.AppendText("\nClassified Info: " + plaintext + "\n");
+                                    richTextBox1.AppendText("Download completed. You can find the file in your download location!\n");
+                                }
+                                else
+                                {
+                                    richTextBox1.AppendText(".");
+                                }
 
                                 string fileCiphertextHex = upMsg.message;
                                 byte[] filePlaintextBytes = decryptWithAES256HexVersion(fileCiphertextHex, keyBytes, IVBytes, "CBC");
