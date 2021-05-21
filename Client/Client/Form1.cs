@@ -479,7 +479,7 @@ namespace Client
             msg.message = message;
             msg.msgCode = code;
             string jsonObject = JsonConvert.SerializeObject(msg);
-            richTextBox1.AppendText("Length of sent message: " + jsonObject.Length + "\n");
+            //richTextBox1.AppendText("Length of sent message: " + jsonObject.Length + "\n");
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
             serverSocket.Send(buffer);
         }
@@ -615,19 +615,19 @@ namespace Client
             }
 
             //Get the local IP Address
-            string currIP = "";
+            List<string> currIP = new List<string>();
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
-                    currIP = ip.ToString();                         //Since type of "ip" is System.Net.IPAddress, there must be conversions
+                    currIP.Add(ip.ToString());                         //Since type of "ip" is System.Net.IPAddress, there must be conversions
             }
 
             if (Int32.TryParse(textBox_Port_input.Text, out port))
             {
                 try
                 {
-                    if (IP == currIP)
+                    if (currIP.Contains(IP))
                     {
                         serverSocket.Connect(IP, port);
                         send_message(name, "User name", MessageCodes.Request);      // send username to server and wait for uniqeness check

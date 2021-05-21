@@ -750,13 +750,10 @@ namespace Secure_Server
 
         CommunicationMessage receiveMessage(Socket s, int size)
         {
-            richTextBox_ConsoleOut.AppendText("a\n");
             Byte[] incomingByteArray = new Byte[size];
             s.Receive(incomingByteArray);
-            richTextBox_ConsoleOut.AppendText("b\n");
             string inMessage = Encoding.Default.GetString(incomingByteArray).Trim('\0');
             CommunicationMessage msg = JsonConvert.DeserializeObject<CommunicationMessage>(inMessage);
-            richTextBox_ConsoleOut.AppendText("c\n");
             return msg;
         }
 
