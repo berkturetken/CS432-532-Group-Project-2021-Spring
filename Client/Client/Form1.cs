@@ -60,6 +60,8 @@ namespace Client
             button_Upload.Enabled = false;
             buttonAccept.Enabled = false;
             buttonReject.Enabled = false;
+            buttonRequest.Enabled = false;
+            buttonDownloadLocation.Enabled = false;
         }
 
         private void Receive()
@@ -106,10 +108,12 @@ namespace Client
                                     richTextBox1.AppendText("You are authenticated.\n");
                                     // Manage GUI elements
                                     button_Login.Enabled = false;
-                                    button_send.Enabled = true;
+                                    //button_send.Enabled = true;
                                     textBox_message.Enabled = true;
                                     browseKeylocation.Enabled = true;
-                                    button_Upload.Enabled = true;
+                                    //button_Upload.Enabled = true;
+                                    //buttonRequest.Enabled = true;
+                                    buttonDownloadLocation.Enabled = true;
                                 }
                                 else // If not verified
                                 {
@@ -143,7 +147,7 @@ namespace Client
                 }
                 catch
                 {
-                    richTextBox1.AppendText("Error while receiving message or deserializing!\n");
+                    richTextBox1.AppendText("Closing...!\n");
                     connectionClosedButtons();
                     serverSocket.Close();
                 }
@@ -592,6 +596,7 @@ namespace Client
                 uploadPath = fileName;
                 textBox_message.Text = fileName.Substring(fileName.LastIndexOf('\\') + 1);
                 tempFileName = fileName.Substring(fileName.LastIndexOf('\\') + 1);
+                button_send.Enabled = true;
             }
         }
 
@@ -769,7 +774,8 @@ namespace Client
 
                         byte[] encryptedSendBuffer = encryptWithAES256(StringSendBuffer, byteKey, byteIV);
                         string encryptedData = generateHexStringFromByteArray(encryptedSendBuffer);
-                        richTextBox1.AppendText("Encrypted Data:\n" + encryptedData + "\n");
+                        // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                        //richTextBox1.AppendText("Encrypted Data:\n" + encryptedData + "\n");
                         UploadMessage umsg;
 
                         int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
@@ -813,6 +819,7 @@ namespace Client
                 keyLocationPath = fbd.SelectedPath;
                 string onlyFolderName = keyLocationPath.Substring(keyLocationPath.LastIndexOf('\\') + 1);
                 keyLocation_text.Text = onlyFolderName;
+                button_Upload.Enabled = true;
             }
         }
 
@@ -824,6 +831,7 @@ namespace Client
                 downloadPath = fbd.SelectedPath;
                 string onlyFolderName = downloadPath.Substring(downloadPath.LastIndexOf('\\') + 1);
                 textBoxDownloadLocation.Text = onlyFolderName;
+                buttonRequest.Enabled = true;
             }
         }
 
@@ -880,6 +888,7 @@ namespace Client
             send_message(finalMessage, "Rejected", MessageCodes.ErrorResponse);
             enableAll();
         }
+
 
         /****** CRYPTOGRAPHIC HELPER FUNCTIONS *******/
         static string generateHexStringFromByteArray(byte[] input)

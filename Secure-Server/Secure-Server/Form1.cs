@@ -243,7 +243,8 @@ namespace Secure_Server
 
                         UploadMessage uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(encryptedData);
                         bool verified = true;
-                        richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
+                        // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                        //richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                         richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
 
                         //While this is not the last packet and verified
@@ -257,7 +258,8 @@ namespace Secure_Server
                             encryptedData = msg.Substring(0, msg.Length - 128);
                             signatureHexa = msg.Substring(msg.Length - 128);
                             uploadMsg = JsonConvert.DeserializeObject<UploadMessage>(encryptedData);
-                            richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
+                            // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                            //richTextBox_ConsoleOut.AppendText("Received Upload Message: " + uploadMsg.message + "\n");
                             richTextBox_ConsoleOut.AppendText("Is last packet: " + uploadMsg.lastPacket.ToString() + "\n");
                         }
 
