@@ -16,7 +16,8 @@ namespace Secure_Server.Models
         DownloadRequest,
         OwnFileSuccessfulDownload,
         OtherFileSuccessfulDownload,
-        RequesterInfo
+        RequesterInfo,
+        ClassifiedInfo
     }
 
     public class FileInformation

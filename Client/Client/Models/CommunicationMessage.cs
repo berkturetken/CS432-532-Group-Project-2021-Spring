@@ -16,7 +16,8 @@ namespace Client.Models
         DownloadRequest,
         OwnFileSuccessfulDownload,
         OtherFileSuccessfulDownload,
-        RequesterInfo
+        RequesterInfo,
+        ClassifiedInfo
     }
 
     public class FileInformation

@@ -30,6 +30,9 @@ namespace Secure_Server
         string serverPrivateKey = "";
         string mainRepositoryPath = "";
         string folderPath = "";
+        string globalRequestedFileOwner = "";
+        string globalRequestedFileName = "";
+        string globalRequesterUsename = "";
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
         Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();     // Session keys
@@ -289,6 +292,7 @@ namespace Secure_Server
                         // Perform the necessary conversions
                         byte[] requestedFileNameInBytes = hexStringToByteArray(requestedFileNameInHexa);
                         string requestedFileName = Encoding.Default.GetString(requestedFileNameInBytes);
+                        globalRequestedFileName = requestedFileName;
                         byte[] signatureInBytes = hexStringToByteArray(signatureHexa);
 
                         // Verify the signed download request retrieved from the client
@@ -310,6 +314,7 @@ namespace Secure_Server
                             else
                             {
                                 string requestedFileOwner = requestedFileName.Substring(0, index);
+                                globalRequestedFileOwner = requestedFileOwner;
                                 string requestedFile = requestedFileName.Substring(index + 1);
                                 int requestedFileNumber = Int32.Parse(requestedFile);
                                 foreach (KeyValuePair<string, int> kvp in userFileCount)
@@ -341,6 +346,7 @@ namespace Secure_Server
                                             requesterUsername = username,
                                             requesterPublicKey = userPubKeys[username]
                                         };
+                                        globalRequesterUsename = username;
                                         string requesterInfoJSON = JsonConvert.SerializeObject(requesterInfo);
                                         string commMsgRequesterInfo = createCommunicationMessage(MessageCodes.RequesterInfo, "DownloadRequest", requesterInfoJSON);
                                         byte[] HMACKey = Encoding.Default.GetBytes(userHMACKeys[requestedFileOwner]);
@@ -350,7 +356,7 @@ namespace Secure_Server
                                         richTextBox_ConsoleOut.AppendText("[Someone else's file] Final message len: " + finalMessage.Length + "\n");
                                         sendMessage(socketList[requestedFileOwner], finalMessage);
 
-                                        richTextBox_ConsoleOut.AppendText("file owner socket: " + socketList[requestedFileOwner] + "\n");
+                                        /*
                                         CommunicationMessage responseCommMsg = receiveMessage(socketList[requestedFileOwner], 4352);
                                         richTextBox_ConsoleOut.AppendText("I received\n");
                                         if (responseCommMsg.topic == "NotVerified")
@@ -419,10 +425,77 @@ namespace Secure_Server
                                                 }
                                             }
                                         }
-                                        richTextBox_ConsoleOut.AppendText("I conquered\n");
+                                        richTextBox_ConsoleOut.AppendText("I conquered\n");*/
                                     }
                                 } 
                             }   
+                        }
+                    }
+                    else if(commMsg.msgCode == MessageCodes.ClassifiedInfo)
+                    {
+                        string msg = commMsg.message;
+                        if (commMsg.topic == "NotVerified")
+                        {
+                            string actualMessage = commMsg.message;
+                            string requestedFileOwnerPublicKey = userPubKeys[globalRequestedFileOwner];
+
+                            // Extract the signature
+                            string verificationErrorMsg = actualMessage.Substring(0, msg.Length - 1024);
+                            string verificationErrorSignatureInHexa = msg.Substring(msg.Length - 1024);
+
+                            // Perform the necessary conversions
+                            byte[] verificationErrorSignatureInBytes = hexStringToByteArray(verificationErrorSignatureInHexa);
+
+                            // Verify the signed download request retrieved from the client
+                            bool isSignatureVerified = verifyWithRSA(verificationErrorMsg, 4096, requestedFileOwnerPublicKey, verificationErrorSignatureInBytes);
+                            if (!isSignatureVerified)
+                            {
+                                richTextBox_ConsoleOut.AppendText("Closing the connection of requested file owner [1]");
+                                closeConnection(socketList[globalRequestedFileOwner], globalRequestedFileOwner);
+                            }
+                            string finalCommMsg = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", "You cannot get the file!");
+                            sendMessage(s, finalCommMsg);
+                        }
+                        else if (commMsg.topic == "DownloadRequest")
+                        {
+                            string actualMessage = commMsg.message.Substring(0, commMsg.message.Length - 128);
+                            string retrievedHmacInHex = commMsg.message.Substring(commMsg.message.Length - 128);
+
+                            bool isHmacVerified = verifyHmac(retrievedHmacInHex, globalRequestedFileOwner, actualMessage);
+                            if (!isHmacVerified)
+                            {
+                                richTextBox_ConsoleOut.AppendText("Closing the connection of requested file owner [2]");
+                                closeConnection(socketList[globalRequestedFileOwner], globalRequestedFileOwner);
+                                string finalCommMsg = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", "You cannot get the file!");
+                                sendMessage(socketList[globalRequesterUsename], finalCommMsg);
+                            }
+                            else
+                            {
+                                richTextBox_ConsoleOut.AppendText("Sending classified info\n");
+                                string filePath = folderPath + "\\" + globalRequestedFileName + ".txt";
+                                CommunicationMessage classifiedInfo = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
+                                readFileAndSendWithKeyAndIV(socketList[globalRequesterUsename], filePath, classifiedInfo.message);
+                            }
+                        }
+                        else if(commMsg.topic == "Rejected")
+                        {
+                            string actualMessage = commMsg.message.Substring(0, commMsg.message.Length - 128);
+                            string retrievedHmacInHex = commMsg.message.Substring(commMsg.message.Length - 128);
+
+                            bool isHmacVerified = verifyHmac(retrievedHmacInHex, globalRequestedFileOwner, actualMessage);
+                            if (!isHmacVerified)
+                            {
+                                richTextBox_ConsoleOut.AppendText("Closing the connection of requested file owner [2]");
+                                closeConnection(socketList[globalRequestedFileOwner], globalRequestedFileOwner);
+                                string finalCommMsg = createCommunicationMessage(MessageCodes.ErrorResponse, "DownloadRequest", "You cannot get the file!");
+                                sendMessage(socketList[globalRequesterUsename], finalCommMsg);
+                            }
+                            else
+                            {
+                                richTextBox_ConsoleOut.AppendText("owner rejected\n");
+                                string ownerRejectMsg = generateFailureMessage("The owner rejected your request", "DownloadRequest");
+                                sendMessage(socketList[globalRequesterUsename], ownerRejectMsg);
+                            }
                         }
                     }
                 }

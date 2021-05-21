@@ -252,7 +252,7 @@ namespace Client
                             if (!isVerified)
                             {
                                 string failureMsg = generateFailureMessage("Signature is not verified!", "DownloadRequest");
-                                send_message(failureMsg, "NotVerified", MessageCodes.ErrorResponse);
+                                send_message(failureMsg, "NotVerified", MessageCodes.ClassifiedInfo);
                             }
                             else
                             {
@@ -276,7 +276,7 @@ namespace Client
                             string signatureHex = msg.message.Substring(msg.message.Length - 1024);
                             byte[] signatureBytes = hexStringToByteArray(signatureHex);
 
-                            bool isVerified = verifyWithRSA(actualMessage, 4096, UserPrivateKey, signatureBytes);
+                            bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
                             if (!isVerified)
                             {
                                 richTextBox1.AppendText("Could not verify message from server! Download is cancelled.\n");
@@ -287,9 +287,12 @@ namespace Client
                             else
                             {
                                 FileInformation fileInformation = JsonConvert.DeserializeObject<FileInformation>(actualMessage);
-                                string classifiedInfo = fileInformation.classifiedInfo;
+                                string classifiedInfoHex = fileInformation.classifiedInfo;
+                                byte[] classifiedInfoBytes = hexStringToByteArray(classifiedInfoHex);
+                                string classifiedInfo = Encoding.Default.GetString(classifiedInfoBytes);
                                 byte[] plaintextBytes = decryptWithRSA(classifiedInfo, 4096, UserPrivateKey);
                                 string plaintext = Encoding.Default.GetString(plaintextBytes);
+                                richTextBox1.AppendText("Classified Info: " + plaintext + "\n");
                                 ClassifiedInfo classifiedInfoJSON = JsonConvert.DeserializeObject<ClassifiedInfo>(plaintext);
                                 string keyHex = classifiedInfoJSON.key;
                                 string IVHex = classifiedInfoJSON.IV;
@@ -298,7 +301,9 @@ namespace Client
                                 byte[] keyBytes = hexStringToByteArray(keyHex);
                                 byte[] IVBytes = hexStringToByteArray(IVHex);
 
-                                string fileCiphertextHex = fileInformation.file;
+                                UploadMessage upMsg = JsonConvert.DeserializeObject<UploadMessage>(fileInformation.file);
+
+                                string fileCiphertextHex = upMsg.message;
                                 byte[] filePlaintextBytes = decryptWithAES256HexVersion(fileCiphertextHex, keyBytes, IVBytes, "CBC");
                                 string filePlaintext = Encoding.Default.GetString(filePlaintextBytes);
                                 saveFile(originalFileName, filePlaintext);
@@ -856,7 +861,7 @@ namespace Client
             byte[] hmacBytes = applyHMACwithSHA512(commMsg, Encoding.Default.GetBytes(SessionKey));
             string hmacHex = generateHexStringFromByteArray(hmacBytes);
             string finalMessage = commMsg + hmacHex;
-            send_message(finalMessage, "DownloadRequest", MessageCodes.SuccessfulResponse);
+            send_message(finalMessage, "DownloadRequest", MessageCodes.ClassifiedInfo);
             enableAll();
         }
 
@@ -872,7 +877,7 @@ namespace Client
             string msg = JsonConvert.SerializeObject(msgJSON);
             byte[] hmacBytes = applyHMACwithSHA512(msg, Encoding.Default.GetBytes(SessionKey));
             string finalMessage = msg + generateHexStringFromByteArray(hmacBytes);
-            send_message(finalMessage, "DownloadRequest", MessageCodes.ErrorResponse);
+            send_message(finalMessage, "Rejected", MessageCodes.ErrorResponse);
             enableAll();
         }
 
