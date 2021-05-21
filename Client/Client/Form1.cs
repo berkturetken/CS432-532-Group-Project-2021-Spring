@@ -43,6 +43,7 @@ namespace Client
         private string tempFileName = "";
         private string globalRequestedFileName = "";
         private string globalRequesterPublicKey = "";
+        int bufferSize = 1048576;       // 1 mb = 1024 kb = 1.048.576 b
 
         public Form1()
         {
@@ -113,7 +114,7 @@ namespace Client
                                     browseKeylocation.Enabled = true;
                                     //button_Upload.Enabled = true;
                                     //buttonRequest.Enabled = true;
-                                    buttonDownloadLocation.Enabled = true;
+                                    //buttonDownloadLocation.Enabled = true;
                                 }
                                 else // If not verified
                                 {
@@ -158,7 +159,7 @@ namespace Client
             {
                 try
                 {
-                    CommunicationMessage msg = receiveMessage(8192); // We may need to increase the size since it is a general recieve function
+                    CommunicationMessage msg = receiveMessage(bufferSize); // We may need to increase the size since it is a general recieve function
 
                     //Result of the upload request is here
                     if(msg.topic=="File Name")
@@ -210,7 +211,7 @@ namespace Client
                             if(isVerified)
                             {
                                 CommunicationMessage inMsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
-                                richTextBox1.AppendText("Message from server: " + inMsg.message + " Download request is cancelled.\n");
+                                richTextBox1.AppendText("Message from server: " + inMsg.message + " Download request is cancelled!\n");
                             }
                             else
                             {
@@ -220,13 +221,15 @@ namespace Client
                         else if(msg.msgCode == MessageCodes.OwnFileSuccessfulDownload) //If the requested file belongs to us
                         {
                             string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
-                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
+                            // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                            //richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
                             string signatureHex = msg.message.Substring(msg.message.Length - 1024);
                             byte[] signatureBytes = hexStringToByteArray(signatureHex);
 
                             CommunicationMessage inMsg = JsonConvert.DeserializeObject<CommunicationMessage>(actualMessage);
                             string incomingData = inMsg.message;
-                            richTextBox1.AppendText("IncomingData: " + incomingData + "\n");
+                            // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                            //richTextBox1.AppendText("IncomingData: " + incomingData + "\n");
                             UploadMessage inData = JsonConvert.DeserializeObject<UploadMessage>(incomingData);
 
                             bool isVerified = verifyWithRSA(actualMessage, 4096, ServerKey, signatureBytes);
@@ -237,7 +240,8 @@ namespace Client
                             else
                             {
                                 string ciphertextHex = inData.message;
-                                richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
+                                // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                                //richTextBox1.AppendText("Ciphertext hex: " + ciphertextHex + "\n");
                                 //byte[] ciphertextBytes = hexStringToByteArray(ciphertextHex);
                                 //string ciphertext = Encoding.Default.GetString(ciphertextBytes);
                                 byte[] key = extractKeyFromFile(textBoxRequestFileName.Text);
@@ -250,7 +254,8 @@ namespace Client
                         else if(msg.msgCode == MessageCodes.RequesterInfo)
                         {
                             string actualMessage = msg.message.Substring(0, msg.message.Length - 128);
-                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
+                            // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                            //richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
                             string HMACHex = msg.message.Substring(msg.message.Length - 128);
                             bool isVerified = verifyHmac(HMACHex, actualMessage);
                             if (!isVerified)
@@ -270,13 +275,14 @@ namespace Client
                                 globalRequestedFileName = requestedFileName;
                                 globalRequesterPublicKey = requesterPublicKey;
                                 richTextBox1.AppendText(requesterUsername + " - " + requestedFileName + " - " + requesterPublicKey + "\n");
-                                richTextBox1.AppendText(requesterUsername + " requests download permission for " + requestedFileName + "\n");
+                                richTextBox1.AppendText(requesterUsername + " requests download permission for " + requestedFileName + ". Please accept or reject this request!\n");
                             }
                         }
                         else if(msg.msgCode == MessageCodes.OtherFileSuccessfulDownload)
                         {
                             string actualMessage = msg.message.Substring(0, msg.message.Length - 1024);
-                            richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
+                            // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                            //richTextBox1.AppendText("ActualMessage: " + actualMessage + "\n");
                             string signatureHex = msg.message.Substring(msg.message.Length - 1024);
                             byte[] signatureBytes = hexStringToByteArray(signatureHex);
 
@@ -297,6 +303,7 @@ namespace Client
                                 byte[] plaintextBytes = decryptWithRSA(classifiedInfo, 4096, UserPrivateKey);
                                 string plaintext = Encoding.Default.GetString(plaintextBytes);
                                 richTextBox1.AppendText("Classified Info: " + plaintext + "\n");
+                                richTextBox1.AppendText("The owner accepts your request. You can find the file in your download location!\n");
                                 ClassifiedInfo classifiedInfoJSON = JsonConvert.DeserializeObject<ClassifiedInfo>(plaintext);
                                 string keyHex = classifiedInfoJSON.key;
                                 string IVHex = classifiedInfoJSON.IV;
@@ -366,8 +373,8 @@ namespace Client
             clientPrivateKey.Enabled = true;
             browseKeylocation.Enabled = true;
             button_Upload.Enabled = true;
-            button_send.Enabled = true;
-            buttonRequest.Enabled = true;
+            //button_send.Enabled = true;
+            //buttonRequest.Enabled = true;
             buttonDownloadLocation.Enabled = true;
             buttonAccept.Enabled = false;
             buttonReject.Enabled = false;
@@ -485,7 +492,15 @@ namespace Client
             string jsonObject = JsonConvert.SerializeObject(msg);
             //richTextBox1.AppendText("Length of sent message: " + jsonObject.Length + "\n");
             byte[] buffer = Encoding.Default.GetBytes(jsonObject);
-            serverSocket.Send(buffer);
+            try
+            {
+                serverSocket.Send(buffer);
+            }
+            catch (IOException ex)
+            {
+                richTextBox1.AppendText("Error --> " + ex.Message + "\n");
+            }
+            
         }
 
         //Receive messages and returning a message object
@@ -754,7 +769,7 @@ namespace Client
                 {
                     var fileSize = BitConverter.GetBytes((int)file.Length); //converting file's size 
 
-                    var sendBuffer = new byte[2048];
+                    var sendBuffer = new byte[bufferSize];
                     var bytesLeftToTransmit = fileSize; //it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                     int count = 1;
 
@@ -820,6 +835,7 @@ namespace Client
                 string onlyFolderName = keyLocationPath.Substring(keyLocationPath.LastIndexOf('\\') + 1);
                 keyLocation_text.Text = onlyFolderName;
                 button_Upload.Enabled = true;
+                buttonDownloadLocation.Enabled = true;
             }
         }
 
@@ -842,6 +858,7 @@ namespace Client
             string message = requestedFileName + Encoding.Default.GetString(requestedFileNameSignature);
             string messageHex = generateHexStringFromByteArray(Encoding.Default.GetBytes(message));
             send_message(messageHex, "DownloadRequest", MessageCodes.DownloadRequest);
+            richTextBox1.AppendText("Waiting for a reply from the owner of the file...\n");
         }
 
         private void buttonAccept_Click(object sender, EventArgs e)
@@ -885,7 +902,7 @@ namespace Client
             string msg = JsonConvert.SerializeObject(msgJSON);
             byte[] hmacBytes = applyHMACwithSHA512(msg, Encoding.Default.GetBytes(SessionKey));
             string finalMessage = msg + generateHexStringFromByteArray(hmacBytes);
-            send_message(finalMessage, "Rejected", MessageCodes.ErrorResponse);
+            send_message(finalMessage, "Rejected", MessageCodes.ClassifiedInfo);
             enableAll();
         }
 
@@ -1203,6 +1220,5 @@ namespace Client
             return result;
         }
 
-        
     }
 }

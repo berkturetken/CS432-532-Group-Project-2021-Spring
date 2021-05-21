@@ -33,6 +33,7 @@ namespace Secure_Server
         string globalRequestedFileOwner = "";
         string globalRequestedFileName = "";
         string globalRequesterUsename = "";
+        int bufferSize = 2098176;   // 2 mb = 2048 kb = 2.097.152 + 1024 bytes = 2.098.176 bytes
 
         Dictionary<string, string> userPubKeys = new Dictionary<string, string>();
         Dictionary<string, string> userHMACKeys = new Dictionary<string, string>();     // Session keys
@@ -108,9 +109,23 @@ namespace Secure_Server
 
                 // Add to dictionary
                 userHMACKeys.Add(username, hmacKey);
-                userFileCount.Add(username, -1);
+                if (!userFileCount.ContainsKey(username))
+                {
+                    userFileCount.Add(username, -1);
+                }
+                
                 richTextBox_ConsoleOut.AppendText(username + " is authenticated\n");
                 printOnlineUsers();
+                // Check server text folder if anything exists
+                int fileNumber = 0;
+                string fileStreamCheck = folderPath + "\\" + username + "_" + fileNumber + ".txt";
+                while(File.Exists(fileStreamCheck))
+                {
+                    fileNumber++;
+                    fileStreamCheck = folderPath + "\\" + username + "_" + fileNumber + ".txt";
+                }
+                userFileCount[username] = fileNumber - 1;
+                richTextBox_ConsoleOut.AppendText(username + " file count " + userFileCount[username] + ".\n");
                 return true;
             }
             catch
@@ -215,10 +230,9 @@ namespace Secure_Server
             {
                 try
                 {
-                    CommunicationMessage commMsg = receiveMessage(s, 4352);
+                    CommunicationMessage commMsg = receiveMessage(s, bufferSize);
                     
                     // When "Upload Request" comes
-                    // TODO: Refactor the below code
                     if(commMsg.msgCode == MessageCodes.UploadRequest)
                     {
                         int count = 1;
@@ -251,7 +265,7 @@ namespace Secure_Server
                         while (!uploadMsg.lastPacket && verified)
                         {
                             verified = handleUploadRequests(signatureHexa, encryptedData, uploadMsg.message, username, fileNumber, HMACKey, s); //Write to the file and handle verification
-                            commMsg = receiveMessage(s, 4352); // Continue receiving
+                            commMsg = receiveMessage(s, bufferSize); // Continue receiving
                             count++;
                             richTextBox_ConsoleOut.AppendText("Received packet " + count.ToString() + " from " + username + "\n");
                             msg = commMsg.message;
@@ -319,10 +333,10 @@ namespace Secure_Server
                                 globalRequestedFileOwner = requestedFileOwner;
                                 string requestedFile = requestedFileName.Substring(index + 1);
                                 int requestedFileNumber = Int32.Parse(requestedFile);
-                                foreach (KeyValuePair<string, int> kvp in userFileCount)
-                                {
-                                    richTextBox_ConsoleOut.AppendText("Key-Value --> " + kvp.Key + " - " + kvp.Value + "\n");
-                                }
+                                //foreach (KeyValuePair<string, int> kvp in userFileCount)
+                                //{
+                                //    richTextBox_ConsoleOut.AppendText("Key-Value --> " + kvp.Key + " - " + kvp.Value + "\n");
+                                //}
 
                                 // If the file exists and the user is connected
                                 if (!(userFileCount.ContainsKey(requestedFileOwner) && userFileCount[requestedFileOwner] >= requestedFileNumber && userHMACKeys.ContainsKey(requestedFileOwner)))
@@ -540,7 +554,7 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[4128];
+                var sendBuffer = new byte[bufferSize];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
@@ -548,7 +562,8 @@ namespace Secure_Server
                 {
                     var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length);   // read inside of the file(to sendBuffer)
                     string sendBufferInHexa = Encoding.Default.GetString(sendBuffer).Trim('\0');
-                    richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
+                    // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                    //richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
 
                     int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
                     int sub = i - dataToSend;
@@ -593,7 +608,7 @@ namespace Secure_Server
             {
                 var fileSize = BitConverter.GetBytes((int)file.Length);       //converting file's size 
 
-                var sendBuffer = new byte[4128];
+                var sendBuffer = new byte[bufferSize];
                 var bytesLeftToTransmit = fileSize;                           // it is initially the whole file size, while sending buffers(sendBuffer) it will decrement.
                 int count = 1;
 
@@ -601,7 +616,8 @@ namespace Secure_Server
                 {
                     var dataToSend = file.Read(sendBuffer, 0, sendBuffer.Length);   // read inside of the file(to sendBuffer)
                     string sendBufferInHexa = Encoding.Default.GetString(sendBuffer).Trim('\0');
-                    richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
+                    // IF YOU WANT TO SEE THE DATA ITSELF, UNCOMMENT THE BELOW LINE!!!
+                    //richTextBox_ConsoleOut.AppendText("SendBufferInHexa: " + sendBufferInHexa + Environment.NewLine);
 
                     int i = BitConverter.ToInt32(bytesLeftToTransmit, 0);
                     int sub = i - dataToSend;
@@ -663,8 +679,8 @@ namespace Secure_Server
                 {
                     richTextBox_ConsoleOut.AppendText("This client already exists!\n");
                     string message = createCommunicationMessage(MessageCodes.ErrorResponse, "User name", "You are already connected!\n");
-                    sendMessage(newClient, message);    //sends message to client
-                    newClient.Close();                  // and closes the socket
+                    sendMessage(newClient, message);    // Sends message to client
+                    newClient.Close();                  // Closes the socket
                 }
                 else
                 {
@@ -675,8 +691,9 @@ namespace Secure_Server
                     bool isClientExist = addClientPubKey(username);
                     if (isClientExist){
                         richTextBox_ConsoleOut.AppendText(username + " connected.\n");
-                        Thread receiveThread = new Thread(() => Receive(newClient, username));
-                        receiveThread.Start();  //Login protocol initiates
+                        Thread receiveThread = new Thread(() => Receive(newClient, username));                        
+                        // Login protocol initiates
+                        receiveThread.Start();  
                     }
                     else
                     {
@@ -845,7 +862,7 @@ namespace Secure_Server
         {
             int serverPort;
 
-            if (serverPrivateKey == "" || serverPublicKey == "" || mainRepositoryPath == "")
+            if (serverPrivateKey == "" || serverPublicKey == "" || mainRepositoryPath == "" || folderPath == "")
             {
                 richTextBox_ConsoleOut.AppendText("Please browse all files and folders first!\n");
             }
